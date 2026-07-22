@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V27.0: FAILSAFE ONBOARDING & INSTANT WIDGET RENDERER
+   SISTEMA MASTER PRO V28.0: ONBOARDING FIX & RESILIENT CIRCLE ROUTER
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v27")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v28")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v27";
+        style.id = "pet-master-system-styles-pro-v28";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -428,12 +428,11 @@ window.PetMasterSystem = {
 
     isVisitanteDeslogadoExplicito: function() {
         if (this.sandboxMode) return false;
-        // Se a pagina possui o botao de Login explicito na tela e NENHUM elemento de logout
-        const hasSignIn = !!document.querySelector('a[href*="sign_in"], a[href*="login"]');
-        const hasSignOut = !!document.querySelector('a[href*="sign_out"], a[href*="logout"], button[data-testid*="sign-out"]');
-        const isBodySignedOut = document.body && document.body.classList.contains('is-signed-out');
-        
-        return (isBodySignedOut || (hasSignIn && !hasSignOut));
+        // Somente retorne true se a página for comprovadamente a tela publica deslogada do Circle
+        if (document.body && document.body.classList.contains('is-signed-out')) return true;
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('/users/sign_in') || path.includes('/users/sign_up') || path.includes('/sign_up')) return true;
+        return false;
     },
 
     capturarEmailRobusto: function() {
@@ -484,7 +483,7 @@ window.PetMasterSystem = {
     },
 
     init: function() {
-        // Se for comprovadamente visitante deslogado em tela pública de login, não carrega
+        // Se for explicitamente visitante deslogado em tela pública de login, não carrega
         if (this.isVisitanteDeslogadoExplicito()) {
             document.getElementById(this.constants.WIDGET_ID)?.remove();
             document.getElementById(this.constants.FULLBODY_ID)?.remove();
