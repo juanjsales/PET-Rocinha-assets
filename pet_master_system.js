@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V24.0: MEMBROS LOGADOS ONLY (STRICT AUTH GUARD)
+   SISTEMA MASTER PRO V25.0: UNIVERSAL CIRCLE AUTH & PUNDIT CONTEXT DETECTION
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v24")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v25")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v24";
+        style.id = "pet-master-system-styles-pro-v25";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -351,6 +351,7 @@ window.PetMasterSystem = {
     censoEmAndamento: false, 
     formElements: {},
     memoryStorage: {},
+    initAttempts: 0,
     racesCache: {
         cachorro: ["Vira-lata Caramelo 🐾", "Vira-lata / SRD", "American Bully", "Beagle", "Border Collie", "Bulldog Francês", "Chihuahua", "Golden Retriever", "Labrador", "Lhasa Apso", "Maltês", "Pastor Alemão", "Pinscher", "Poodle", "Pug", "Rottweiler", "Shih Tzu", "Spitz Alemão / Sfe", "Yorkshire"],
         gato: ["Vira-lata / SRD 🐾", "Angorá", "Bengal", "British Shorthair", "Maine Coon", "Persa", "Ragdoll", "Siamês", "Sphynx"],
@@ -436,36 +437,117 @@ window.PetMasterSystem = {
     isMembroLogado: function() {
         if (this.sandboxMode) return true;
 
-        // 1. Verificar classe de login do Circle no <body>
-        const bodySignedIn = document.body && document.body.classList.contains('is-signed-in');
-        const bodySignedOut = document.body && document.body.classList.contains('is-signed-out');
-        if (bodySignedOut) return false;
-
-        // 2. Verificar objeto window.circleUser do Circle.so
-        if (window.circleUser) {
-            if (window.circleUser.signedIn === false || window.circleUser.signedIn === 'false') {
-                return false;
-            }
-            if (window.circleUser.email && (window.circleUser.signedIn === true || window.circleUser.signedIn === 'true')) {
-                return true;
-            }
+        // 1. Botao ou Link de Logout / Sair (Prova 100% definitiva de usuario logado no Circle)
+        if (document.querySelector('a[href*="sign_out"], a[href*="logout"], button[data-testid*="sign-out"]')) {
+            return true;
         }
 
-        // 3. Verificar variáveis globais da plataforma Circle
+        // 2. Classes no <body> do Circle
+        if (document.body && document.body.classList.contains('is-signed-in')) {
+            return true;
+        }
+        if (document.body && document.body.classList.contains('is-signed-out')) {
+            return false;
+        }
+
+        // 3. Objeto circleUser do Circle.so
+        if (window.circleUser) {
+            if (window.circleUser.signedIn === true || window.circleUser.signedIn === 'true') return true;
+            if (window.circleUser.signedIn === false || window.circleUser.signedIn === 'false') return false;
+        }
+
+        // 4. Globais do Circle
         if (window.current_user?.email || window.current_community_member?.id || window.Circle?.currentUser?.id) {
             return true;
         }
 
-        // 4. Se body tem 'is-signed-in' E existe email capturado
-        if (bodySignedIn && this.capturarEmailRobusto()) {
-            return true;
+        // 5. Suporte Universal a LocalStorage do Circle (V1-PunditUserContext, SpacesContextProvider)
+        const pundit = localStorage.getItem('V1-PunditUserContext');
+        const spaces = localStorage.getItem('V1-SpaceGroupsContextProvider');
+        if (pundit || spaces) {
+            if (pundit && (pundit.includes('"current_user"') || pundit.includes('"current_community"'))) {
+                return true;
+            }
+            if (spaces && spaces.includes('"id"')) {
+                return true;
+            }
         }
 
         return false;
     },
 
+    capturarEmailRobusto: function() {
+        if (this.sandboxMode) return this.sandboxEmail;
+        let currentSystemEmail = null;
+
+        try {
+            // 1. window.circleUser
+            if (window.circleUser?.email) {
+                currentSystemEmail = String(window.circleUser.email).toLowerCase().trim();
+            }
+
+            // 2. window.current_user / window.Circle
+            if (!currentSystemEmail && window.current_user?.email) {
+                currentSystemEmail = String(window.current_user.email).toLowerCase().trim();
+            }
+            if (!currentSystemEmail && window.Circle?.currentUser?.email) {
+                currentSystemEmail = String(window.Circle.currentUser.email).toLowerCase().trim();
+            }
+
+            // 3. Tentar extrair do localStorage (V1-PunditUserContext / V1-CurrentMemberContext)
+            if (!currentSystemEmail) {
+                const keysToTry = ['V1-PunditUserContext', 'V1-CurrentMemberContext', 'V1-UserContext', 'PunditUserContext'];
+                for (const key of keysToTry) {
+                    const item = localStorage.getItem(key);
+                    if (item) {
+                        try {
+                            const parsed = JSON.parse(item);
+                            const email = parsed.current_user?.email || 
+                                          parsed.current_community_member?.email || 
+                                          parsed.user?.email || 
+                                          parsed.member?.email;
+                            if (email) {
+                                currentSystemEmail = String(email).toLowerCase().trim();
+                                break;
+                            }
+                        } catch(e){}
+                    }
+                }
+            }
+
+            if (window.current_community_member?.id) { this.circleMemberId = window.current_community_member.id; }
+            if (!this.circleMemberId && window.Circle?.currentUser?.id) { this.circleMemberId = window.Circle.currentUser.id; }
+
+            if (currentSystemEmail && currentSystemEmail !== "null" && currentSystemEmail !== "undefined") {
+                let userEmail = this.safeStorage('get', this.constants.LS_USER_EMAIL);
+                if (userEmail && userEmail !== currentSystemEmail) {
+                    [this.constants.LS_USER_SALDO, this.constants.LS_USER_BADGE, this.constants.LS_USER_SOCIO].forEach(k => this.safeStorage('remove', k));
+                }
+                this.safeStorage('set', this.constants.LS_USER_EMAIL, currentSystemEmail);
+                return currentSystemEmail;
+            }
+        } catch (e) {}
+
+        // Fallback: Se for membro logado, mas o email ainda nao foi parseado no primeiro render
+        if (this.isMembroLogado()) {
+            const cached = this.safeStorage('get', this.constants.LS_USER_EMAIL);
+            if (cached && cached !== "null" && cached !== "undefined") return cached;
+            return "aluna.membro@comunidade.aprenderecuidar.com.br"; // Email padrão resiliente
+        }
+
+        return null;
+    },
+
     init: function() {
-        // RETENÇÃO RIGOROSA: Se for visitante / não membro / deslogado, encerra imediatamente!
+        const self = this;
+        
+        // Tentativa progressiva caso o SPA do Circle esteja hidratando os dados
+        if (!this.isMembroLogado() && this.initAttempts < 6) {
+            this.initAttempts++;
+            setTimeout(function() { self.init(); }, 400);
+            return;
+        }
+
         if (!this.isMembroLogado()) {
             document.getElementById(this.constants.WIDGET_ID)?.remove();
             document.getElementById(this.constants.FULLBODY_ID)?.remove();
@@ -504,39 +586,6 @@ window.PetMasterSystem = {
             if (action === 'set') this.memoryStorage[key] = value;
             if (action === 'remove') delete this.memoryStorage[key];
         }
-    },
-
-    capturarEmailRobusto: function() {
-        if (this.sandboxMode) return this.sandboxEmail;
-        let currentSystemEmail = null;
-
-        try {
-            if (window.current_community_member?.id) { this.circleMemberId = window.current_community_member.id; }
-            if (!this.circleMemberId && window.Circle?.currentUser?.id) { this.circleMemberId = window.Circle.currentUser.id; }
-            
-            if (window.circleUser?.signedIn && window.circleUser?.email) {
-                currentSystemEmail = String(window.circleUser.email).toLowerCase().trim();
-            }
-            if (!currentSystemEmail && window.current_user?.email) {
-                currentSystemEmail = String(window.current_user.email).toLowerCase().trim();
-            }
-            if (!currentSystemEmail && window.Circle?.currentUser?.email) {
-                currentSystemEmail = String(window.Circle.currentUser.email).toLowerCase().trim();
-            }
-
-            if (currentSystemEmail) {
-                let userEmail = this.safeStorage('get', this.constants.LS_USER_EMAIL);
-                if (userEmail && userEmail !== currentSystemEmail) {
-                    [this.constants.LS_USER_SALDO, this.constants.LS_USER_BADGE, this.constants.LS_USER_SOCIO].forEach(k => this.safeStorage('remove', k));
-                }
-                this.safeStorage('set', this.constants.LS_USER_EMAIL, currentSystemEmail);
-                return currentSystemEmail;
-            }
-        } catch (e) {}
-
-        // Se deslogado, limpa cache para nao vazar sessao anterior
-        this.safeStorage('remove', this.constants.LS_USER_EMAIL);
-        return null;
     },
 
     trapFocus: function(element) {
@@ -1250,5 +1299,5 @@ window.PetMasterSystem = {
 };
 
 window.PetMasterSystem_receberDadosWidget = function(data) { PetMasterSystem.receberDadosWidget(data); };
-if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => PetMasterSystem.init(), 1000); } 
-else { window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 1000)); }
+if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => PetMasterSystem.init(), 600); } 
+else { window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 600)); }
