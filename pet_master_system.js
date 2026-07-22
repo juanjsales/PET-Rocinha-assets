@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V25.0: UNIVERSAL CIRCLE AUTH & PUNDIT CONTEXT DETECTION
+   SISTEMA MASTER PRO V26.0: BULLETPROOF ONBOARDING & WIDGET LOADER
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v25")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v26")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v25";
+        style.id = "pet-master-system-styles-pro-v26";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -437,43 +437,34 @@ window.PetMasterSystem = {
     isMembroLogado: function() {
         if (this.sandboxMode) return true;
 
-        // 1. Botao ou Link de Logout / Sair (Prova 100% definitiva de usuario logado no Circle)
-        if (document.querySelector('a[href*="sign_out"], a[href*="logout"], button[data-testid*="sign-out"]')) {
+        // A) Se existe botao/link de logout ou classe is-signed-in no body -> 100% Membro Logado
+        if (document.querySelector('a[href*="sign_out"], a[href*="logout"], button[data-testid*="sign-out"], body.is-signed-in')) {
             return true;
         }
 
-        // 2. Classes no <body> do Circle
-        if (document.body && document.body.classList.contains('is-signed-in')) {
-            return true;
-        }
-        if (document.body && document.body.classList.contains('is-signed-out')) {
-            return false;
-        }
+        // B) Objetos do Circle
+        if (window.circleUser?.signedIn === true || window.circleUser?.signedIn === 'true') return true;
+        if (window.current_user?.email || window.current_community_member?.id || window.Circle?.currentUser?.id) return true;
 
-        // 3. Objeto circleUser do Circle.so
-        if (window.circleUser) {
-            if (window.circleUser.signedIn === true || window.circleUser.signedIn === 'true') return true;
-            if (window.circleUser.signedIn === false || window.circleUser.signedIn === 'false') return false;
-        }
-
-        // 4. Globais do Circle
-        if (window.current_user?.email || window.current_community_member?.id || window.Circle?.currentUser?.id) {
-            return true;
-        }
-
-        // 5. Suporte Universal a LocalStorage do Circle (V1-PunditUserContext, SpacesContextProvider)
-        const pundit = localStorage.getItem('V1-PunditUserContext');
-        const spaces = localStorage.getItem('V1-SpaceGroupsContextProvider');
-        if (pundit || spaces) {
-            if (pundit && (pundit.includes('"current_user"') || pundit.includes('"current_community"'))) {
+        // C) LocalStorage do Circle (PunditUserContext com usuario valido)
+        try {
+            const pundit = localStorage.getItem('V1-PunditUserContext');
+            if (pundit && pundit.includes('"current_user"') && !pundit.includes('"current_user":null')) {
                 return true;
             }
+            const spaces = localStorage.getItem('V1-SpaceGroupsContextProvider');
             if (spaces && spaces.includes('"id"')) {
                 return true;
             }
+        } catch(e) {}
+
+        // D) Se a página possui link de login explicito no topo (visitante deslogado)
+        if (document.querySelector('a[href*="sign_in"]') && !document.querySelector('a[href*="sign_out"]')) {
+            return false;
         }
 
-        return false;
+        // E) Fallback inteligente: Se existe email salvo
+        return !!this.capturarEmailRobusto();
     },
 
     capturarEmailRobusto: function() {
@@ -481,12 +472,9 @@ window.PetMasterSystem = {
         let currentSystemEmail = null;
 
         try {
-            // 1. window.circleUser
             if (window.circleUser?.email) {
                 currentSystemEmail = String(window.circleUser.email).toLowerCase().trim();
             }
-
-            // 2. window.current_user / window.Circle
             if (!currentSystemEmail && window.current_user?.email) {
                 currentSystemEmail = String(window.current_user.email).toLowerCase().trim();
             }
@@ -494,7 +482,6 @@ window.PetMasterSystem = {
                 currentSystemEmail = String(window.Circle.currentUser.email).toLowerCase().trim();
             }
 
-            // 3. Tentar extrair do localStorage (V1-PunditUserContext / V1-CurrentMemberContext)
             if (!currentSystemEmail) {
                 const keysToTry = ['V1-PunditUserContext', 'V1-CurrentMemberContext', 'V1-UserContext', 'PunditUserContext'];
                 for (const key of keysToTry) {
@@ -528,11 +515,10 @@ window.PetMasterSystem = {
             }
         } catch (e) {}
 
-        // Fallback: Se for membro logado, mas o email ainda nao foi parseado no primeiro render
         if (this.isMembroLogado()) {
             const cached = this.safeStorage('get', this.constants.LS_USER_EMAIL);
             if (cached && cached !== "null" && cached !== "undefined") return cached;
-            return "aluna.membro@comunidade.aprenderecuidar.com.br"; // Email padrão resiliente
+            return "aluna.membro@comunidade.aprenderecuidar.com.br";
         }
 
         return null;
@@ -541,10 +527,10 @@ window.PetMasterSystem = {
     init: function() {
         const self = this;
         
-        // Tentativa progressiva caso o SPA do Circle esteja hidratando os dados
-        if (!this.isMembroLogado() && this.initAttempts < 6) {
+        // Re-tentativas suaves para dar tempo ao SPA do Circle hidratar
+        if (!this.isMembroLogado() && this.initAttempts < 5) {
             this.initAttempts++;
-            setTimeout(function() { self.init(); }, 400);
+            setTimeout(function() { self.init(); }, 300);
             return;
         }
 
@@ -559,6 +545,7 @@ window.PetMasterSystem = {
         this.emailAluna = this.capturarEmailRobusto();
         if (!this.emailAluna) return;
 
+        // Sempre inicia o Widget para aluna logada
         this.iniciarWidget();
         
         const onboardingConcluido = this.safeStorage('get', this.constants.LS_ONBOARDING_DONE) === "true";
@@ -613,10 +600,10 @@ window.PetMasterSystem = {
 
     iniciarWidget: function() {
         if (!this.emailAluna || !this.isMembroLogado()) return;
-        if (this.safeStorage('get', this.constants.LS_WIDGET_MINIMIZED) == null) this.safeStorage('set', this.constants.LS_WIDGET_MINIMIZED, 'true');
+        if (this.safeStorage('get', this.constants.LS_WIDGET_MINIMIZED) == null) this.safeStorage('set', this.constants.LS_WIDGET_MINIMIZED, 'false');
 
         const cS = this.safeStorage('get', this.constants.LS_USER_SALDO);
-        this.renderizarWidget({ encontrado: cS !== null, arrasas: cS || 0, badge: this.safeStorage('get', this.constants.LS_USER_BADGE), isCache: true });
+        this.renderizarWidget({ encontrado: cS !== null, arrasas: cS || 0, badge: this.safeStorage('get', this.constants.LS_USER_BADGE) || "Aprendiz", isCache: true });
 
         var script = document.createElement('script');
         var ts = new Date().getTime();
@@ -635,21 +622,15 @@ window.PetMasterSystem = {
             if (data.badge) this.safeStorage('set', this.constants.LS_USER_BADGE, data.badge);
             this.safeStorage('set', this.constants.LS_USER_SOCIO, isSocioValido ? 'true' : 'false');
             
-            if (isSocioValido) {
-                data.isCache = false;
-                this.renderizarWidget(data);
-            } else {
-                const widget = document.getElementById(this.constants.WIDGET_ID);
-                if (widget) widget.style.display = 'none';
-                const fullbody = document.getElementById(this.constants.FULLBODY_ID);
-                if (fullbody) fullbody.style.display = 'none';
-                if (!this.censoEmAndamento) this.exibirTravaSocioeconomicoPopup();
+            data.isCache = false;
+            this.renderizarWidget(data);
+            
+            if (!isSocioValido && !this.censoEmAndamento) {
+                this.exibirTravaSocioeconomicoPopup();
             }
         } else {
-            const widget = document.getElementById(this.constants.WIDGET_ID);
-            if (widget) widget.style.display = 'none';
-            const fullbody = document.getElementById(this.constants.FULLBODY_ID);
-            if (fullbody) fullbody.style.display = 'none';
+            // Se for primeiro acesso da aluna, renderiza com badge padrão
+            this.renderizarWidget({ encontrado: true, arrasas: 0, badge: "Aprendiz", isCache: true });
         }
     },
 
@@ -665,10 +646,10 @@ window.PetMasterSystem = {
                 "aprendiz": "https://raw.githubusercontent.com/juanjsales/PET-Rocinha-assets/main/Aprendiz.webp"
             };
             for (const key in badgeMap) { if (s.includes(key)) return badgeMap[key]; }
-            return "";
+            return "https://raw.githubusercontent.com/juanjsales/PET-Rocinha-assets/main/Aprendiz.webp";
         };
         const badgeSrc = getBadgeImg(badgeName);
-        return badgeSrc ? `<img src="${badgeSrc}" class="pet-widget-badge" alt="Medalha">` : `<div class="pet-widget-badge" style="display:flex;align-items:center;justify-content:center;background:#fff9f2;font-size:22px;">🐾</div>`;
+        return `<img src="${badgeSrc}" class="pet-widget-badge" alt="Medalha">`;
     },
 
     _animateSaldo: function(element, startVal, endVal) {
@@ -699,17 +680,8 @@ window.PetMasterSystem = {
         let fullbodyContainer = document.getElementById(this.constants.FULLBODY_ID);
 
         const isMinimized = this.safeStorage('get', this.constants.LS_WIDGET_MINIMIZED) === 'true';
-        const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === 'true';
-        const hasBadge = !!(this.safeStorage('get', this.constants.LS_USER_BADGE) || (data && data.badge));
-        const isAluna = data && data.encontrado;
-        const valorNovo = isAluna ? parseInt(data.arrasas || 0) : 0;
+        const valorNovo = data && data.arrasas !== undefined ? parseInt(data.arrasas || 0) : 0;
         const valorAnterior = parseInt(this.safeStorage('get', this.constants.LS_USER_SALDO) || 0);
-
-        if (!isSocio || !hasBadge) {
-            if (widget) widget.style.display = 'none';
-            if (fullbodyContainer) fullbodyContainer.style.display = 'none';
-            return;
-        }
 
         if (!widget) {
             widget = document.createElement('div');
@@ -773,14 +745,14 @@ window.PetMasterSystem = {
         document.getElementById('pet-btn-minimize')?.addEventListener('click', (e) => this.togglePetWidget(e));
         document.getElementById('pet-btn-maximize')?.addEventListener('click', (e) => this.togglePetWidget(e));
         document.getElementById('pet-btn-onboarding-reopen')?.addEventListener('click', (e) => { e.stopPropagation(); this.reiniciarOnboarding(); });
-        document.getElementById('pet-main-content')?.addEventListener('click', () => window.open(isAluna ? "/dash_aluna" : "/sign_up", '_self'));
+        document.getElementById('pet-main-content')?.addEventListener('click', () => window.open("/dash_aluna", '_self'));
     },
 
     togglePetWidget: function(e) {
         if (e) e.stopPropagation();
         const isMin = this.safeStorage('get', this.constants.LS_WIDGET_MINIMIZED) === 'true';
         this.safeStorage('set', this.constants.LS_WIDGET_MINIMIZED, !isMin);
-        this.renderizarWidget({ encontrado: true, arrasas: this.safeStorage('get', this.constants.LS_USER_SALDO) || 0, badge: this.safeStorage('get', this.constants.LS_USER_BADGE) || "", isCache: true });
+        this.renderizarWidget({ encontrado: true, arrasas: this.safeStorage('get', this.constants.LS_USER_SALDO) || 0, badge: this.safeStorage('get', this.constants.LS_USER_BADGE) || "Aprendiz", isCache: true });
     },
 
     setupDraggable: function(elmnt) {
@@ -1299,5 +1271,5 @@ window.PetMasterSystem = {
 };
 
 window.PetMasterSystem_receberDadosWidget = function(data) { PetMasterSystem.receberDadosWidget(data); };
-if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => PetMasterSystem.init(), 600); } 
-else { window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 600)); }
+if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => PetMasterSystem.init(), 300); } 
+else { window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 300)); }
