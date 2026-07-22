@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V26.0: BULLETPROOF ONBOARDING & WIDGET LOADER
+   SISTEMA MASTER PRO V27.0: FAILSAFE ONBOARDING & INSTANT WIDGET RENDERER
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v26")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v27")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v26";
+        style.id = "pet-master-system-styles-pro-v27";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -351,14 +351,6 @@ window.PetMasterSystem = {
     censoEmAndamento: false, 
     formElements: {},
     memoryStorage: {},
-    initAttempts: 0,
-    racesCache: {
-        cachorro: ["Vira-lata Caramelo 🐾", "Vira-lata / SRD", "American Bully", "Beagle", "Border Collie", "Bulldog Francês", "Chihuahua", "Golden Retriever", "Labrador", "Lhasa Apso", "Maltês", "Pastor Alemão", "Pinscher", "Poodle", "Pug", "Rottweiler", "Shih Tzu", "Spitz Alemão / Sfe", "Yorkshire"],
-        gato: ["Vira-lata / SRD 🐾", "Angorá", "Bengal", "British Shorthair", "Maine Coon", "Persa", "Ragdoll", "Siamês", "Sphynx"],
-        coelho: ["Mini Lion Head 🐇", "Mini Lop", "Netherland Dwarf", "Flemish Giant (Gigante)", "Angorá", "Sem Raça Definida / Comum"],
-        ave: ["Galinha Caipira / Comum 🐓", "Galo Índio Gigante", "Galinha Sedosa do Japão (Silkie)", "Galinha Garnizé", "Galo Rhode Island Red", "Galinha caipira poedeira"],
-        pato: ["Pato de Pequim (Branco) 🦆", "Pato Corredor Indiano", "Marreco de Pequim", "Marreco Carolina", "Pato Comum / Caipira"]
-    },
 
     tourLocations: [
         {
@@ -434,37 +426,14 @@ window.PetMasterSystem = {
         }
     ],
 
-    isMembroLogado: function() {
-        if (this.sandboxMode) return true;
-
-        // A) Se existe botao/link de logout ou classe is-signed-in no body -> 100% Membro Logado
-        if (document.querySelector('a[href*="sign_out"], a[href*="logout"], button[data-testid*="sign-out"], body.is-signed-in')) {
-            return true;
-        }
-
-        // B) Objetos do Circle
-        if (window.circleUser?.signedIn === true || window.circleUser?.signedIn === 'true') return true;
-        if (window.current_user?.email || window.current_community_member?.id || window.Circle?.currentUser?.id) return true;
-
-        // C) LocalStorage do Circle (PunditUserContext com usuario valido)
-        try {
-            const pundit = localStorage.getItem('V1-PunditUserContext');
-            if (pundit && pundit.includes('"current_user"') && !pundit.includes('"current_user":null')) {
-                return true;
-            }
-            const spaces = localStorage.getItem('V1-SpaceGroupsContextProvider');
-            if (spaces && spaces.includes('"id"')) {
-                return true;
-            }
-        } catch(e) {}
-
-        // D) Se a página possui link de login explicito no topo (visitante deslogado)
-        if (document.querySelector('a[href*="sign_in"]') && !document.querySelector('a[href*="sign_out"]')) {
-            return false;
-        }
-
-        // E) Fallback inteligente: Se existe email salvo
-        return !!this.capturarEmailRobusto();
+    isVisitanteDeslogadoExplicito: function() {
+        if (this.sandboxMode) return false;
+        // Se a pagina possui o botao de Login explicito na tela e NENHUM elemento de logout
+        const hasSignIn = !!document.querySelector('a[href*="sign_in"], a[href*="login"]');
+        const hasSignOut = !!document.querySelector('a[href*="sign_out"], a[href*="logout"], button[data-testid*="sign-out"]');
+        const isBodySignedOut = document.body && document.body.classList.contains('is-signed-out');
+        
+        return (isBodySignedOut || (hasSignIn && !hasSignOut));
     },
 
     capturarEmailRobusto: function() {
@@ -502,53 +471,37 @@ window.PetMasterSystem = {
                 }
             }
 
-            if (window.current_community_member?.id) { this.circleMemberId = window.current_community_member.id; }
-            if (!this.circleMemberId && window.Circle?.currentUser?.id) { this.circleMemberId = window.Circle.currentUser.id; }
-
             if (currentSystemEmail && currentSystemEmail !== "null" && currentSystemEmail !== "undefined") {
-                let userEmail = this.safeStorage('get', this.constants.LS_USER_EMAIL);
-                if (userEmail && userEmail !== currentSystemEmail) {
-                    [this.constants.LS_USER_SALDO, this.constants.LS_USER_BADGE, this.constants.LS_USER_SOCIO].forEach(k => this.safeStorage('remove', k));
-                }
                 this.safeStorage('set', this.constants.LS_USER_EMAIL, currentSystemEmail);
                 return currentSystemEmail;
             }
         } catch (e) {}
 
-        if (this.isMembroLogado()) {
-            const cached = this.safeStorage('get', this.constants.LS_USER_EMAIL);
-            if (cached && cached !== "null" && cached !== "undefined") return cached;
-            return "aluna.membro@comunidade.aprenderecuidar.com.br";
-        }
+        const cached = this.safeStorage('get', this.constants.LS_USER_EMAIL);
+        if (cached && cached !== "null" && cached !== "undefined") return cached;
 
-        return null;
+        return "aluna@comunidade.aprenderecuidar.com.br";
     },
 
     init: function() {
-        const self = this;
-        
-        // Re-tentativas suaves para dar tempo ao SPA do Circle hidratar
-        if (!this.isMembroLogado() && this.initAttempts < 5) {
-            this.initAttempts++;
-            setTimeout(function() { self.init(); }, 300);
-            return;
-        }
-
-        if (!this.isMembroLogado()) {
+        // Se for comprovadamente visitante deslogado em tela pública de login, não carrega
+        if (this.isVisitanteDeslogadoExplicito()) {
             document.getElementById(this.constants.WIDGET_ID)?.remove();
             document.getElementById(this.constants.FULLBODY_ID)?.remove();
             document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
-            document.getElementById("circle-popup-socoeco")?.remove();
             return;
         }
 
         this.emailAluna = this.capturarEmailRobusto();
-        if (!this.emailAluna) return;
 
-        // Sempre inicia o Widget para aluna logada
+        // 1. Sempre exibe o Widget Flutuante da Mentora no canto da tela
         this.iniciarWidget();
         
-        const onboardingConcluido = this.safeStorage('get', this.constants.LS_ONBOARDING_DONE) === "true";
+        // 2. Checagem de Onboarding / Censo
+        const urlParams = new URLSearchParams(window.location.search);
+        const forceOnboarding = urlParams.get('onboarding') === 'true';
+
+        const onboardingConcluido = !forceOnboarding && this.safeStorage('get', this.constants.LS_ONBOARDING_DONE) === "true";
         const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
         const censoConcluido = !this.sandboxMode && this.safeStorage('get', this.constants.LS_PARTICIPADO) === "true";
 
@@ -599,21 +552,21 @@ window.PetMasterSystem = {
     },
 
     iniciarWidget: function() {
-        if (!this.emailAluna || !this.isMembroLogado()) return;
         if (this.safeStorage('get', this.constants.LS_WIDGET_MINIMIZED) == null) this.safeStorage('set', this.constants.LS_WIDGET_MINIMIZED, 'false');
 
         const cS = this.safeStorage('get', this.constants.LS_USER_SALDO);
         this.renderizarWidget({ encontrado: cS !== null, arrasas: cS || 0, badge: this.safeStorage('get', this.constants.LS_USER_BADGE) || "Aprendiz", isCache: true });
 
-        var script = document.createElement('script');
-        var ts = new Date().getTime();
-        script.src = this.urlAppScript + "?email=" + encodeURIComponent(this.emailAluna) + "&ultimoSaldo=" + (cS || 0) + "&action=widget&callback=PetMasterSystem.receberDadosWidget&t=" + ts;
-        document.body.appendChild(script);
-        script.onload = function() { if(this.parentNode) this.parentNode.removeChild(this); };
+        if (this.emailAluna) {
+            var script = document.createElement('script');
+            var ts = new Date().getTime();
+            script.src = this.urlAppScript + "?email=" + encodeURIComponent(this.emailAluna) + "&ultimoSaldo=" + (cS || 0) + "&action=widget&callback=PetMasterSystem.receberDadosWidget&t=" + ts;
+            document.body.appendChild(script);
+            script.onload = function() { if(this.parentNode) this.parentNode.removeChild(this); };
+        }
     },
 
     receberDadosWidget: function(data) {
-        if (!this.isMembroLogado()) return;
         const isSocioValido = data && data.encontrado && (data.socioeconomico === true || data.socioeconomico === 'true' || data.socioeconomico === 'Sim' || data.socioeconomico === 1);
         
         if (data && data.encontrado) {
@@ -629,7 +582,6 @@ window.PetMasterSystem = {
                 this.exibirTravaSocioeconomicoPopup();
             }
         } else {
-            // Se for primeiro acesso da aluna, renderiza com badge padrão
             this.renderizarWidget({ encontrado: true, arrasas: 0, badge: "Aprendiz", isCache: true });
         }
     },
@@ -675,7 +627,6 @@ window.PetMasterSystem = {
     },
 
     renderizarWidget: function(data) {
-        if (!this.isMembroLogado()) return;
         let widget = document.getElementById(this.constants.WIDGET_ID);
         let fullbodyContainer = document.getElementById(this.constants.FULLBODY_ID);
 
@@ -794,7 +745,6 @@ window.PetMasterSystem = {
     },
 
     fazerCaminhadaVertical: function() {
-        if (!this.isMembroLogado()) return;
         const container = document.createElement('div');
         container.id = this.constants.WALK_CONTAINER_ID; container.className = 'pet-overlay-global';
         container.style.backgroundColor = 'rgba(26, 24, 80, 0.1)'; container.style.backdropFilter = 'blur(0px)';
@@ -822,7 +772,6 @@ window.PetMasterSystem = {
     },
 
     iniciarOnboardingFluido: function() {
-        if (!this.isMembroLogado()) return;
         this.tourCurrentStep = 0;
         this.renderTourStep(0);
     },
@@ -876,7 +825,6 @@ window.PetMasterSystem = {
     },
 
     renderTourStep: function(stepIndex) {
-        if (!this.isMembroLogado()) return;
         let overlay = document.getElementById(this.constants.TOUR_OVERLAY_ID);
         if (!overlay) {
             overlay = document.createElement('div');
@@ -985,14 +933,12 @@ window.PetMasterSystem = {
     },
 
     reiniciarOnboarding: function() {
-        if (!this.isMembroLogado()) return;
         this.safeStorage('remove', this.constants.LS_ONBOARDING_DONE);
         this.censoEmAndamento = true;
         this.fazerCaminhadaVertical();
     },
 
     iniciarCensoFormulario: function() {
-        if (!this.isMembroLogado()) return;
         const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
         if (!isSocio && !this.sandboxMode) {
             this.exibirTravaSocioeconomicoPopup();
@@ -1227,7 +1173,6 @@ window.PetMasterSystem = {
     },
 
     exibirTravaSocioeconomicoPopup: function() {
-        if (!this.isMembroLogado()) return;
         if (document.getElementById("circle-popup-socoeco")) return;
         if (sessionStorage.getItem('pet_popup_ignorado_sessao') === 'true') return;
 
@@ -1271,5 +1216,5 @@ window.PetMasterSystem = {
 };
 
 window.PetMasterSystem_receberDadosWidget = function(data) { PetMasterSystem.receberDadosWidget(data); };
-if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => PetMasterSystem.init(), 300); } 
-else { window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 300)); }
+if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => PetMasterSystem.init(), 200); } 
+else { window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 200)); }
