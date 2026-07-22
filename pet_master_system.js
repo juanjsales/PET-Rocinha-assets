@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V23.0: CIRCLE.SO READY WITH SMART BUTTON TOUR FINDER
+   SISTEMA MASTER PRO V24.0: MEMBROS LOGADOS ONLY (STRICT AUTH GUARD)
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v23")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v24")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v23";
+        style.id = "pet-master-system-styles-pro-v24";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -433,21 +433,63 @@ window.PetMasterSystem = {
         }
     ],
 
+    isMembroLogado: function() {
+        if (this.sandboxMode) return true;
+
+        // 1. Verificar classe de login do Circle no <body>
+        const bodySignedIn = document.body && document.body.classList.contains('is-signed-in');
+        const bodySignedOut = document.body && document.body.classList.contains('is-signed-out');
+        if (bodySignedOut) return false;
+
+        // 2. Verificar objeto window.circleUser do Circle.so
+        if (window.circleUser) {
+            if (window.circleUser.signedIn === false || window.circleUser.signedIn === 'false') {
+                return false;
+            }
+            if (window.circleUser.email && (window.circleUser.signedIn === true || window.circleUser.signedIn === 'true')) {
+                return true;
+            }
+        }
+
+        // 3. Verificar variáveis globais da plataforma Circle
+        if (window.current_user?.email || window.current_community_member?.id || window.Circle?.currentUser?.id) {
+            return true;
+        }
+
+        // 4. Se body tem 'is-signed-in' E existe email capturado
+        if (bodySignedIn && this.capturarEmailRobusto()) {
+            return true;
+        }
+
+        return false;
+    },
+
     init: function() {
+        // RETENÇÃO RIGOROSA: Se for visitante / não membro / deslogado, encerra imediatamente!
+        if (!this.isMembroLogado()) {
+            document.getElementById(this.constants.WIDGET_ID)?.remove();
+            document.getElementById(this.constants.FULLBODY_ID)?.remove();
+            document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
+            document.getElementById("circle-popup-socoeco")?.remove();
+            return;
+        }
+
         this.emailAluna = this.capturarEmailRobusto();
+        if (!this.emailAluna) return;
+
         this.iniciarWidget();
         
         const onboardingConcluido = this.safeStorage('get', this.constants.LS_ONBOARDING_DONE) === "true";
         const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
         const censoConcluido = !this.sandboxMode && this.safeStorage('get', this.constants.LS_PARTICIPADO) === "true";
 
-        if (this.emailAluna && !onboardingConcluido) {
+        if (!onboardingConcluido) {
             this.censoEmAndamento = true;
             this.fazerCaminhadaVertical();
-        } else if (this.emailAluna && onboardingConcluido && isSocio && !censoConcluido) {
+        } else if (onboardingConcluido && isSocio && !censoConcluido) {
             this.censoEmAndamento = true;
             this.iniciarCensoFormulario();
-        } else if (this.emailAluna && onboardingConcluido && !isSocio) {
+        } else if (onboardingConcluido && !isSocio) {
             this.exibirTravaSocioeconomicoPopup();
         }
     },
@@ -466,26 +508,35 @@ window.PetMasterSystem = {
 
     capturarEmailRobusto: function() {
         if (this.sandboxMode) return this.sandboxEmail;
-        let userEmail = this.safeStorage('get', this.constants.LS_USER_EMAIL);
         let currentSystemEmail = null;
 
         try {
             if (window.current_community_member?.id) { this.circleMemberId = window.current_community_member.id; }
             if (!this.circleMemberId && window.Circle?.currentUser?.id) { this.circleMemberId = window.Circle.currentUser.id; }
-            if (window.circleUser?.email) { currentSystemEmail = String(window.circleUser.email).toLowerCase().trim(); }
-            if (!currentSystemEmail && window.current_user?.email) { currentSystemEmail = String(window.current_user.email).toLowerCase().trim(); }
-            if (!currentSystemEmail && window.Circle?.currentUser?.email) { currentSystemEmail = String(window.Circle.currentUser.email).toLowerCase().trim(); }
+            
+            if (window.circleUser?.signedIn && window.circleUser?.email) {
+                currentSystemEmail = String(window.circleUser.email).toLowerCase().trim();
+            }
+            if (!currentSystemEmail && window.current_user?.email) {
+                currentSystemEmail = String(window.current_user.email).toLowerCase().trim();
+            }
+            if (!currentSystemEmail && window.Circle?.currentUser?.email) {
+                currentSystemEmail = String(window.Circle.currentUser.email).toLowerCase().trim();
+            }
 
-            if (currentSystemEmail && userEmail && currentSystemEmail !== userEmail) {
-                [this.constants.LS_USER_SALDO, this.constants.LS_USER_BADGE, this.constants.LS_USER_SOCIO].forEach(k => this.safeStorage('remove', k));
-                userEmail = currentSystemEmail;
-                this.safeStorage('set', this.constants.LS_USER_EMAIL, userEmail);
-            } else if (currentSystemEmail && (!userEmail || userEmail === "undefined" || userEmail === "null")) {
-                userEmail = currentSystemEmail;
-                this.safeStorage('set', this.constants.LS_USER_EMAIL, userEmail);
+            if (currentSystemEmail) {
+                let userEmail = this.safeStorage('get', this.constants.LS_USER_EMAIL);
+                if (userEmail && userEmail !== currentSystemEmail) {
+                    [this.constants.LS_USER_SALDO, this.constants.LS_USER_BADGE, this.constants.LS_USER_SOCIO].forEach(k => this.safeStorage('remove', k));
+                }
+                this.safeStorage('set', this.constants.LS_USER_EMAIL, currentSystemEmail);
+                return currentSystemEmail;
             }
         } catch (e) {}
-        return (userEmail && userEmail !== "null") ? userEmail : null;
+
+        // Se deslogado, limpa cache para nao vazar sessao anterior
+        this.safeStorage('remove', this.constants.LS_USER_EMAIL);
+        return null;
     },
 
     trapFocus: function(element) {
@@ -512,7 +563,7 @@ window.PetMasterSystem = {
     },
 
     iniciarWidget: function() {
-        if (!this.emailAluna) return;
+        if (!this.emailAluna || !this.isMembroLogado()) return;
         if (this.safeStorage('get', this.constants.LS_WIDGET_MINIMIZED) == null) this.safeStorage('set', this.constants.LS_WIDGET_MINIMIZED, 'true');
 
         const cS = this.safeStorage('get', this.constants.LS_USER_SALDO);
@@ -526,6 +577,7 @@ window.PetMasterSystem = {
     },
 
     receberDadosWidget: function(data) {
+        if (!this.isMembroLogado()) return;
         const isSocioValido = data && data.encontrado && (data.socioeconomico === true || data.socioeconomico === 'true' || data.socioeconomico === 'Sim' || data.socioeconomico === 1);
         
         if (data && data.encontrado) {
@@ -593,6 +645,7 @@ window.PetMasterSystem = {
     },
 
     renderizarWidget: function(data) {
+        if (!this.isMembroLogado()) return;
         let widget = document.getElementById(this.constants.WIDGET_ID);
         let fullbodyContainer = document.getElementById(this.constants.FULLBODY_ID);
 
@@ -720,6 +773,7 @@ window.PetMasterSystem = {
     },
 
     fazerCaminhadaVertical: function() {
+        if (!this.isMembroLogado()) return;
         const container = document.createElement('div');
         container.id = this.constants.WALK_CONTAINER_ID; container.className = 'pet-overlay-global';
         container.style.backgroundColor = 'rgba(26, 24, 80, 0.1)'; container.style.backdropFilter = 'blur(0px)';
@@ -747,6 +801,7 @@ window.PetMasterSystem = {
     },
 
     iniciarOnboardingFluido: function() {
+        if (!this.isMembroLogado()) return;
         this.tourCurrentStep = 0;
         this.renderTourStep(0);
     },
@@ -800,6 +855,7 @@ window.PetMasterSystem = {
     },
 
     renderTourStep: function(stepIndex) {
+        if (!this.isMembroLogado()) return;
         let overlay = document.getElementById(this.constants.TOUR_OVERLAY_ID);
         if (!overlay) {
             overlay = document.createElement('div');
@@ -908,12 +964,14 @@ window.PetMasterSystem = {
     },
 
     reiniciarOnboarding: function() {
+        if (!this.isMembroLogado()) return;
         this.safeStorage('remove', this.constants.LS_ONBOARDING_DONE);
         this.censoEmAndamento = true;
         this.fazerCaminhadaVertical();
     },
 
     iniciarCensoFormulario: function() {
+        if (!this.isMembroLogado()) return;
         const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
         if (!isSocio && !this.sandboxMode) {
             this.exibirTravaSocioeconomicoPopup();
@@ -1148,6 +1206,7 @@ window.PetMasterSystem = {
     },
 
     exibirTravaSocioeconomicoPopup: function() {
+        if (!this.isMembroLogado()) return;
         if (document.getElementById("circle-popup-socoeco")) return;
         if (sessionStorage.getItem('pet_popup_ignorado_sessao') === 'true') return;
 
