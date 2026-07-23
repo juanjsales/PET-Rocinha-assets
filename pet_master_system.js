@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V35.0: ENTERPRISE CIRCLE.SO SPA & NATIVE API INTEGRATION
+   SISTEMA MASTER PRO V36.0: PRECISE SPOTLIGHT TARGETING & TEXT FORMATTING FIX
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v35")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v36")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v35";
+        style.id = "pet-master-system-styles-pro-v36";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -358,13 +358,13 @@ window.PetMasterSystem = {
             desc: "Oi, mulher! Que alegria ter você aqui! Eu sou a sua <b>Mentora da Comunidade</b> e vou te guiar! Aqui em <b>Comunicação > Primeiros passos</b> você assiste ao vídeo de introdução para começar sua jornada!",
             breadcrumb: "📍 Menu Lateral > Comunicação > Primeiros passos",
             selectors: [
-                "#sidebar-primeiros-passos",
-                "a[href*='primeiros']",
-                "a[href*='start']",
-                "[data-space-slug*='primeiros']",
-                "[data-testid*='space-primeiros']"
+                "aside a[href*='primeiros-passos']",
+                "aside a[href*='primeiros_passos']",
+                "a[href*='primeiros-passos']",
+                "a[href*='primeiros_passos']",
+                "[data-space-slug*='primeiros-passos']"
             ],
-            keywords: ["primeiros passos", "boas-vindas", "comece aqui", "início"],
+            keywords: ["primeiros passos", "boas-vindas"],
             pose: "boasVindas"
         },
         {
@@ -372,15 +372,13 @@ window.PetMasterSystem = {
             desc: "No botão do seu <b>Meu Perfil / Perfil Aluna</b> você preenche seu formulário socioeconômico para liberar seu auxílio financeiro de R$ 100,00, suas Medalhas e o Censo Pet!",
             breadcrumb: "📍 Menu Lateral / Topo > Meu Perfil",
             selectors: [
-                "#sidebar-perfil",
-                "a[href*='/u/']",
-                "a[href*='perfil']",
-                "a[href*='profile']",
-                "[data-testid*='user-menu']",
-                ".user-menu",
-                ".avatar"
+                "aside a[href*='perfil']",
+                "aside a[href*='profile']",
+                "aside a[href*='/u/']",
+                "a[href*='meu-perfil']",
+                "a[href*='/perfil']"
             ],
-            keywords: ["perfil", "meu perfil", "profile", "minha conta", "socioeconômico"],
+            keywords: ["meu perfil", "perfil aluna"],
             pose: "apontando"
         },
         {
@@ -388,14 +386,12 @@ window.PetMasterSystem = {
             desc: "Em <b>Cursos</b> e <b>Painel da Aluna</b> você assiste às aulas do curso de Pet Sitter e acompanha toda a sua evolução profissional!",
             breadcrumb: "📍 Menu Superior > Cursos / Painel da Aluna",
             selectors: [
+                "header a[href*='cursos']",
+                "nav a[href*='cursos']",
                 "#nav-cursos",
-                "#nav-painel",
-                "a[href*='cursos']",
-                "a[href*='courses']",
-                "a[href*='painel']",
-                "a[href*='dash']"
+                "a[href*='cursos']"
             ],
-            keywords: ["cursos", "curso", "aulas", "painel", "conteúdo", "pet sitter"],
+            keywords: ["cursos", "painel da aluna"],
             pose: "apontando"
         },
         {
@@ -403,25 +399,23 @@ window.PetMasterSystem = {
             desc: "Comemore suas conquistas com a gente no botão <b>#Arrasei</b> e tire suas dúvidas com as mentoras no menu <b>Dúvidas</b>!",
             breadcrumb: "📍 Menu Lateral > Geral > #Arrasei / Dúvidas",
             selectors: [
-                "#sidebar-arrasei",
-                "#sidebar-duvidas",
+                "aside a[href*='arrasei']",
+                "aside a[href*='duvidas']",
                 "a[href*='arrasei']",
-                "a[href*='duvidas']",
-                "a[href*='duvida']"
+                "a[href*='duvidas']"
             ],
-            keywords: ["arrasei", "#arrasei", "dúvidas", "duvidas", "suporte"],
+            keywords: ["#arrasei", "arrasei", "dúvidas", "duvidas"],
             pose: "comemorando"
         },
         {
             title: "💳 Seu Saldo de Arrasas & Widget Flutuante",
-            desc: "O seu **Widget Flutuante de Arrasas** e o **Censo Pet** serão ativados assim que você responder o formulário socioeconômico!",
+            desc: "O seu <b>Widget Flutuante de Arrasas</b> e o <b>Censo Pet</b> serão ativados assim que você responder o formulário socioeconômico!",
             breadcrumb: "📍 Widget Flutuante (Liberado Após Socioeconômico)",
             selectors: [
                 "#pet-floating-widget",
-                "#pet-widget-fullbody-container",
-                "a[href*='perfil']"
+                "#pet-widget-fullbody-container"
             ],
-            keywords: ["arrasas", "saldo", "widget"],
+            keywords: ["widget", "arrasas"],
             pose: "comemorando"
         }
     ],
@@ -576,7 +570,6 @@ window.PetMasterSystem = {
     },
 
     obterMembroCircleAPI: function() {
-        // Chamada nativa ao endpoint interno do Circle.so para obter o e-mail da aluna logada
         if (this.sandboxMode) return;
         const self = this;
         try {
@@ -598,7 +591,6 @@ window.PetMasterSystem = {
         const self = this;
         let lastPath = window.location.pathname;
         
-        // Monitora trocas de rota no Next.js/React Router do Circle
         const onPathChange = () => {
             if (window.location.pathname !== lastPath) {
                 lastPath = window.location.pathname;
@@ -947,6 +939,7 @@ window.PetMasterSystem = {
     findTargetElement: function(locConfig) {
         if (!locConfig) return null;
 
+        // 1. Tentar seletores CSS explícitos primeiro
         if (locConfig.selectors && locConfig.selectors.length > 0) {
             for (const sel of locConfig.selectors) {
                 try {
@@ -960,13 +953,15 @@ window.PetMasterSystem = {
             }
         }
 
+        // 2. Buscador por texto exato nos links do menu (prioriza dentro do aside / sidebar)
         if (locConfig.keywords && locConfig.keywords.length > 0) {
-            const candidates = document.querySelectorAll('a, button, [role="button"], li, div[class*="item"], div[class*="space"], nav a, aside a');
-            for (const el of candidates) {
+            const sidebarLinks = document.querySelectorAll('aside a, nav a, aside button, nav button, header a');
+            for (const el of sidebarLinks) {
                 if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
-                    const textContent = (el.innerText || el.textContent || el.getAttribute('aria-label') || '').toLowerCase().trim();
+                    const textContent = (el.innerText || el.textContent || '').toLowerCase().trim();
                     for (const kw of locConfig.keywords) {
-                        if (textContent.includes(kw.toLowerCase())) {
+                        const targetKw = kw.toLowerCase().trim();
+                        if (textContent === targetKw || (textContent.includes(targetKw) && textContent.length < 30)) {
                             return el;
                         }
                     }
