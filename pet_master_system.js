@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V37.0: FEED REDIRECT, WIDGET PRESENTATION & BADGE LOGIC
+   SISTEMA MASTER PRO V38.0: 4-STEP STREAMLINED TOUR (SIDEBAR, HEADER, POST, WIDGET)
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v37")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v38")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v37";
+        style.id = "pet-master-system-styles-pro-v38";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -24,7 +24,6 @@
                 display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
             }
 
-            /* Personagem lateral removida a pedido do usuário */
             #pet-widget-fullbody-container { display: none !important; }
 
             .pet-widget-container {
@@ -60,7 +59,6 @@
             }
             .pet-minimized-icon:hover { transform: scale(1.14) rotate(8deg); }
 
-            /* Balão explicativo do Widget */
             .pet-widget-intro-bubble {
                 background: linear-gradient(135deg, #1a1850 0%, #0f172a 100%); color: white;
                 padding: 10px 14px; border-radius: 16px; font-size: 12px; font-weight: 700;
@@ -317,65 +315,52 @@ window.PetMasterSystem = {
     formElements: {},
     memoryStorage: {},
 
+    /* NOVO FLUXO EM 4 PASSOS SOLICITADO PELO USUÁRIO */
     tourLocations: [
         {
-            title: "🚀 Primeiros Passos & Boas-Vindas",
-            desc: "Oi, mulher! Que alegria ter você aqui! Eu sou a sua <b>Mentora da Comunidade</b> e vou te guiar! Aqui em <b>Comunicação > Primeiros passos</b> você assiste ao vídeo de introdução para começar sua jornada!",
-            breadcrumb: "📍 Menu Lateral > Comunicação > Primeiros passos",
+            title: "🚀 Conheça seu Menu Lateral",
+            desc: "Aqui no <b>Menu Lateral</b> você encontra o seu <b>Meu Perfil</b>, o acesso aos <b>Primeiros passos</b>, o espaço <b>#Arrasei</b> para comemorar suas conquistas e a área de <b>Dúvidas</b> para falar com as mentoras!",
+            breadcrumb: "📍 Passo 1 de 4 > Menu Lateral (Esquerda)",
             selectors: [
-                "aside a[href*='primeiros-passos']",
-                "aside a[href*='primeiros_passos']",
-                "a[href*='primeiros-passos']",
-                "a[href*='primeiros_passos']",
-                "[data-space-slug*='primeiros-passos']"
+                "aside",
+                "nav[class*='sidebar']",
+                "[class*='layout-sidebar']",
+                ".sidebar"
             ],
-            keywords: ["primeiros passos", "boas-vindas"],
+            keywords: ["feed", "meu perfil", "comunicação"],
             pose: "boasVindas"
         },
         {
-            title: "👤 Seu Perfil & Formulário Socioeconômico",
-            desc: "No botão do seu <b>Meu Perfil / Perfil Aluna</b> você preenche seu formulário socioeconômico para liberar seu auxílio financeiro de R$ 100,00, suas Medalhas e o Censo Pet!",
-            breadcrumb: "📍 Menu Lateral / Topo > Meu Perfil",
+            title: "🎓 Barra Superior de Conteúdos",
+            desc: "Na <b>Barra Superior</b> você navega pelos botões de <b>Cursos</b>, <b>Painel da Aluna</b>, <b>Agenda</b> e <b>Membros</b> para assistir às aulas e acompanhar todo o seu curso!",
+            breadcrumb: "📍 Passo 2 de 4 > Barra Superior (Topo)",
             selectors: [
-                "aside a[href*='perfil']",
-                "aside a[href*='profile']",
-                "aside a[href*='/u/']",
-                "a[href*='meu-perfil']",
-                "a[href*='/perfil']"
+                "header",
+                "nav[class*='top']",
+                "div[class*='header-container']",
+                "#top-nav"
             ],
-            keywords: ["meu perfil", "perfil aluna"],
+            keywords: ["cursos", "painel", "agenda"],
             pose: "apontando"
         },
         {
-            title: "🎓 Suas Aulas & Conteúdos",
-            desc: "Em <b>Cursos</b> e <b>Painel da Aluna</b> você assiste às aulas do curso de Pet Sitter e acompanha toda a sua evolução profissional!",
-            breadcrumb: "📍 Menu Superior > Cursos / Painel da Aluna",
+            title: "✍️ Onde Publicar seus Posts",
+            desc: "Quer publicar uma conquista ou fazer uma pergunta para a comunidade? Basta clicar neste botão <b>+ Nova publicação</b> para criar seu post!",
+            breadcrumb: "📍 Passo 3 de 4 > Botão + Nova Publicação (Topo Direito)",
             selectors: [
-                "header a[href*='cursos']",
-                "nav a[href*='cursos']",
-                "#nav-cursos",
-                "a[href*='cursos']"
+                "a[href*='new_post']",
+                "a[href*='posts/new']",
+                "button[class*='new-post']",
+                "[data-testid*='new-post']",
+                "a[class*='btn-primary']"
             ],
-            keywords: ["cursos", "painel da aluna"],
+            keywords: ["nova publicação", "nova publicacao", "novo post"],
             pose: "apontando"
         },
         {
-            title: "🏆 Compartilhe Vitórias & Tire Dúvidas",
-            desc: "Comemore suas conquistas com a gente no botão <b>#Arrasei</b> e tire suas dúvidas com as mentoras no menu <b>Dúvidas</b>!",
-            breadcrumb: "📍 Menu Lateral > Geral > #Arrasei / Dúvidas",
-            selectors: [
-                "aside a[href*='arrasei']",
-                "aside a[href*='duvidas']",
-                "a[href*='arrasei']",
-                "a[href*='duvidas']"
-            ],
-            keywords: ["#arrasei", "arrasei", "dúvidas", "duvidas"],
-            pose: "comemorando"
-        },
-        {
-            title: "💳 Seu Saldo de Arrasas & Widget Flutuante",
-            desc: "Este é o seu <b>Widget Flutuante</b>! Nele você acompanha o seu <b>Saldo de Arrasas</b>, suas <b>Medalhas Conquistadas</b> (liberadas após o socioeconômico) e pode clicar no botão 🚀 a qualquer momento para rever este guia!",
-            breadcrumb: "📍 Widget Flutuante de Arrasas & Conquistas",
+            title: "💳 Seu Widget Flutuante & Conquistas",
+            desc: "Este é o seu <b>Widget Flutuante</b>! Nele você acompanha o seu <b>Saldo de Arrasas</b>, suas <b>Medalhas Conquistadas</b> (liberadas após o socioeconômico) e pode clicar no botão 🚀 a qualquer momento para rever este tour!",
+            breadcrumb: "📍 Passo 4 de 4 > Widget Flutuante (Canto Inferior)",
             selectors: [
                 "#pet-floating-widget"
             ],
@@ -578,7 +563,6 @@ window.PetMasterSystem = {
     },
 
     garantirPaginaFeed: function() {
-        // Redireciona/garante que o Onboarding rode na rota /feed para melhor sincronização
         const currentPath = window.location.pathname.toLowerCase();
         if (currentPath !== '/feed' && currentPath !== '/feed/' && currentPath !== '/') {
             console.log("🐾 PetMasterSystem: Redirecionando para o /feed para sincronização do Onboarding!");
@@ -724,10 +708,8 @@ window.PetMasterSystem = {
     },
 
     _getBadgeHtml: function(badgeName) {
-        // REGRA DE MEDALHA: Só exibe medalha se tiver preenchido o formulário socioeconômico
         const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
         if (!isSocio && !this.sandboxMode) {
-            // Se NÃO preencheu o socioeconômico -> NÃO exibe medalha (mostra o ícone neutro 🐾)
             return `<div class="pet-widget-no-badge" title="Responda o Socioeconômico para liberar sua Medalha!">🐾</div>`;
         }
 
@@ -789,7 +771,6 @@ window.PetMasterSystem = {
         if (!this.isMembroLogado()) return;
         let widget = document.getElementById(this.constants.WIDGET_ID);
 
-        // Remove a personagem de corpo inteiro ao lado do widget completamente
         document.getElementById(this.constants.FULLBODY_ID)?.remove();
 
         const isMinimized = this.safeStorage('get', this.constants.LS_WIDGET_MINIMIZED) === 'true';
@@ -926,13 +907,13 @@ window.PetMasterSystem = {
         }
 
         if (locConfig.keywords && locConfig.keywords.length > 0) {
-            const sidebarLinks = document.querySelectorAll('aside a, nav a, aside button, nav button, header a');
-            for (const el of sidebarLinks) {
+            const candidates = document.querySelectorAll('aside, header, nav, a, button, [role="button"]');
+            for (const el of candidates) {
                 if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
                     const textContent = (el.innerText || el.textContent || '').toLowerCase().trim();
                     for (const kw of locConfig.keywords) {
                         const targetKw = kw.toLowerCase().trim();
-                        if (textContent === targetKw || (textContent.includes(targetKw) && textContent.length < 30)) {
+                        if (textContent.includes(targetKw)) {
                             return el;
                         }
                     }
