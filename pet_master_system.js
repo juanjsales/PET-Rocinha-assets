@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V43.0: MOBILE RESPONSIVE & TOP NAV PRECISION SPOTLIGHT
+   SISTEMA MASTER PRO V44.0: PERFECT SPOTLIGHT POSITIONING & NO WIDGET OVERLAP
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v43")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v44")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v43";
+        style.id = "pet-master-system-styles-pro-v44";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -23,6 +23,10 @@
             #pet-floating-widget {
                 position: fixed !important; z-index: 2147483640 !important; touch-action: none; user-select: none;
                 display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+            }
+
+            .pet-widget-in-tour-highlight {
+                z-index: 2147483648 !important;
             }
 
             #pet-widget-fullbody-container { display: none !important; }
@@ -1051,39 +1055,71 @@ var PetMasterSystem = {
             document.body.appendChild(overlay);
         }
 
+        const widgetEl = document.getElementById(self.constants.WIDGET_ID);
+
         const loc = self.tourLocations[stepIndex];
         const targetEl = self.findTargetElement(loc);
 
         let spotlightHtml = '';
         let cardTop = '50%', cardLeft = '50%', transform = 'translate(-50%, -50%)';
 
-        if (targetEl) {
-            try {
-                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-            } catch(e) {}
+        // NO PASSO 4 (WIDGET FLUTUANTE): ELEVA O WIDGET ACIMA DO OVERLAY E POSICIONA O CARD AO LADO/ACIMA
+        if (stepIndex === 3 || (loc.breadcrumb && loc.breadcrumb.includes("Passo 4"))) {
+            if (widgetEl) {
+                widgetEl.classList.add("pet-widget-in-tour-highlight");
+                const wRect = widgetEl.getBoundingClientRect();
+                
+                spotlightHtml = `
+                    <div class="pet-spotlight-ring" style="
+                        top: ${Math.max(0, wRect.top - 8)}px;
+                        left: ${Math.max(0, wRect.left - 8)}px;
+                        width: ${wRect.width + 16}px;
+                        height: ${wRect.height + 16}px;
+                    "></div>
+                `;
 
-            const rect = targetEl.getBoundingClientRect();
-            const padding = 10;
-            spotlightHtml = `
-                <div class="pet-spotlight-ring" style="
-                    top: ${Math.max(0, rect.top - padding)}px;
-                    left: ${Math.max(0, rect.left - padding)}px;
-                    width: ${rect.width + padding * 2}px;
-                    height: ${rect.height + padding * 2}px;
-                "></div>
-            `;
-
-            if (rect.left > window.innerWidth / 2) {
-                cardLeft = Math.max(20, rect.left - 480) + 'px';
-                cardTop = Math.min(window.innerHeight - 360, Math.max(20, rect.top - 20)) + 'px';
-                transform = 'none';
-            } else {
-                cardLeft = Math.min(window.innerWidth - 480, rect.right + 20) + 'px';
-                cardTop = Math.min(window.innerHeight - 360, Math.max(20, rect.top - 20)) + 'px';
-                transform = 'none';
+                // Posiciona o Card Acima/À Esquerda do Widget para NUNCA sobrepor!
+                if (window.innerWidth > 768) {
+                    cardLeft = Math.max(20, wRect.left - 460) + 'px';
+                    cardTop = Math.max(20, wRect.top - 320) + 'px';
+                    transform = 'none';
+                } else {
+                    cardLeft = '0px';
+                    cardTop = 'auto';
+                    transform = 'none';
+                }
             }
+        } else {
+            if (widgetEl) widgetEl.classList.remove("pet-widget-in-tour-highlight");
 
-            if (window.innerWidth < 768) { cardLeft = '0px'; cardTop = 'auto'; transform = 'none'; }
+            if (targetEl) {
+                try {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                } catch(e) {}
+
+                const rect = targetEl.getBoundingClientRect();
+                const padding = 10;
+                spotlightHtml = `
+                    <div class="pet-spotlight-ring" style="
+                        top: ${Math.max(0, rect.top - padding)}px;
+                        left: ${Math.max(0, rect.left - padding)}px;
+                        width: ${rect.width + padding * 2}px;
+                        height: ${rect.height + padding * 2}px;
+                    "></div>
+                `;
+
+                if (rect.left > window.innerWidth / 2) {
+                    cardLeft = Math.max(20, rect.left - 480) + 'px';
+                    cardTop = Math.min(window.innerHeight - 360, Math.max(20, rect.top - 20)) + 'px';
+                    transform = 'none';
+                } else {
+                    cardLeft = Math.min(window.innerWidth - 480, rect.right + 20) + 'px';
+                    cardTop = Math.min(window.innerHeight - 360, Math.max(20, rect.top - 20)) + 'px';
+                    transform = 'none';
+                }
+
+                if (window.innerWidth < 768) { cardLeft = '0px'; cardTop = 'auto'; transform = 'none'; }
+            }
         }
 
         const isLastStep = stepIndex === self.tourLocations.length - 1;
@@ -1148,6 +1184,7 @@ var PetMasterSystem = {
             if (self.tourCurrentStep < self.tourLocations.length - 1) {
                 self.renderTourStep(self.tourCurrentStep + 1);
             } else {
+                widgetEl?.classList.remove("pet-widget-in-tour-highlight");
                 const userKey = self.getUserOnboardingKey(self.emailAluna);
                 self.safeStorage('set', userKey, "true");
                 self.safeStorage('set', self.constants.LS_ONBOARDING_DONE, "true");
