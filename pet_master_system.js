@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V33.0: DEEP LOCALSTORAGE EMAIL SCANNER FOR CIRCLE
+   SISTEMA MASTER PRO V34.0: DIRECT EMAIL-KEY ONBOARDING SHOW RULE
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v33")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v34")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v33";
+        style.id = "pet-master-system-styles-pro-v34";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -487,7 +487,6 @@ window.PetMasterSystem = {
         let currentSystemEmail = null;
 
         try {
-            // 1. Variáveis globais do Circle
             if (window.circleUser?.email) {
                 currentSystemEmail = String(window.circleUser.email).toLowerCase().trim();
             }
@@ -498,7 +497,6 @@ window.PetMasterSystem = {
                 currentSystemEmail = String(window.Circle.currentUser.email).toLowerCase().trim();
             }
 
-            // 2. Chaves específicas do LocalStorage onde o Circle injeta o usuário
             if (!currentSystemEmail) {
                 const circleKeys = [
                     'V1-PunditUserContext',
@@ -528,7 +526,6 @@ window.PetMasterSystem = {
                 }
             }
 
-            // 3. Varredura profunda em TODAS as chaves do LocalStorage do Circle
             if (!currentSystemEmail) {
                 for (let i = 0; i < localStorage.length; i++) {
                     const k = localStorage.key(i);
@@ -565,15 +562,24 @@ window.PetMasterSystem = {
     },
 
     getUserOnboardingKey: function(email) {
-        const cleanEmail = email ? String(email).toLowerCase().trim().replace(/[^a-z0-9]/g, '_') : 'default';
+        if (!email) {
+            // Se ainda não tiver o e-mail exato extraído, usa um identificador de sessão do Circle
+            const spaces = localStorage.getItem('V1-SpaceGroupsContextProvider') || '';
+            const pundit = localStorage.getItem('V1-PunditUserContext') || '';
+            const raw = (spaces + pundit).replace(/[^a-z0-9]/gi, '');
+            if (raw.length > 10) {
+                return 'pet_onboarding_v1_seen_' + raw.substring(0, 25);
+            }
+            return 'pet_onboarding_v1_seen_generic_user';
+        }
+        const cleanEmail = String(email).toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
         return 'pet_onboarding_v1_seen_' + cleanEmail;
     },
 
     forceStartOnboarding: function() {
         console.log("🐾 PetMasterSystem: Forçando início do Onboarding pelo Widget/Comando!");
-        if (this.emailAluna) {
-            this.safeStorage('remove', this.getUserOnboardingKey(this.emailAluna));
-        }
+        const userKey = this.getUserOnboardingKey(this.emailAluna);
+        this.safeStorage('remove', userKey);
         this.safeStorage('remove', this.constants.LS_ONBOARDING_DONE);
         this.censoEmAndamento = true;
         this.fazerCaminhadaVertical();
@@ -585,6 +591,7 @@ window.PetMasterSystem = {
     },
 
     init: function() {
+        // 1. Apenas para membros logados na comunidade
         if (!this.isMembroLogado()) {
             document.getElementById(this.constants.WIDGET_ID)?.remove();
             document.getElementById(this.constants.FULLBODY_ID)?.remove();
@@ -593,30 +600,40 @@ window.PetMasterSystem = {
             return;
         }
 
-        // Tenta capturar o e-mail injetado pelo Circle
+        // 2. Extrai e-mail da aluna logada
         this.emailAluna = this.capturarEmailRobusto();
 
+        // 3. Renderiza o Widget Flutuante
         this.iniciarWidget();
         
+        // 4. Parâmetro de forçar URL ?onboarding=true
         const urlParams = new URLSearchParams(window.location.search);
         const forceOnboarding = urlParams.get('onboarding') === 'true';
 
+        // 5. REGRA DIRETA E ABSOLUTA DO LOCALSTORAGE:
+        //    Se no localStorage NÃO tiver "pet_onboarding_v1_seen_<email_da_aluna>", "true" -> MOSTRAR!
         const userKey = this.getUserOnboardingKey(this.emailAluna);
-        const jaViuOnboarding = this.safeStorage('get', userKey) === "true" || this.safeStorage('get', this.constants.LS_ONBOARDING_DONE) === "true";
-        const onboardingConcluido = !forceOnboarding && jaViuOnboarding;
 
-        const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
-        const censoConcluido = !this.sandboxMode && this.safeStorage('get', this.constants.LS_PARTICIPADO) === "true";
+        if (forceOnboarding) {
+            this.safeStorage('remove', userKey);
+        }
 
-        if (!onboardingConcluido) {
-            console.log("🐾 PetMasterSystem: E-mail identificado (" + this.emailAluna + "). Iniciando Onboarding para a aluna!");
+        const jaViuOnboarding = this.safeStorage('get', userKey) === "true";
+
+        if (!jaViuOnboarding) {
+            console.log("🐾 PetMasterSystem: Aluna AINDA NÃO VIU o Onboarding (Chave: " + userKey + "). MOSTRANDO AGORA!");
             this.censoEmAndamento = true;
             this.fazerCaminhadaVertical();
-        } else if (onboardingConcluido && isSocio && !censoConcluido) {
-            this.censoEmAndamento = true;
-            this.iniciarCensoFormulario();
-        } else if (onboardingConcluido && !isSocio) {
-            this.exibirTravaSocioeconomicoPopup();
+        } else {
+            console.log("🐾 PetMasterSystem: Aluna já assistiu ao Onboarding (Chave: " + userKey + " = true).");
+            const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
+            const censoConcluido = !this.sandboxMode && this.safeStorage('get', this.constants.LS_PARTICIPADO) === "true";
+            if (isSocio && !censoConcluido) {
+                this.censoEmAndamento = true;
+                this.iniciarCensoFormulario();
+            } else if (!isSocio) {
+                this.exibirTravaSocioeconomicoPopup();
+            }
         }
     },
 
@@ -1029,10 +1046,12 @@ window.PetMasterSystem = {
                 this.tourCurrentStep++;
                 this.renderTourStep(this.tourCurrentStep);
             } else {
-                if (this.emailAluna) {
-                    this.safeStorage('set', this.getUserOnboardingKey(this.emailAluna), "true");
-                }
+                // GRAVA DIRETAMENTE NO LOCALSTORAGE QUE A ALUNA JA VIU O ONBOARDING!
+                const userKey = this.getUserOnboardingKey(this.emailAluna);
+                this.safeStorage('set', userKey, "true");
                 this.safeStorage('set', this.constants.LS_ONBOARDING_DONE, "true");
+                console.log("🐾 PetMasterSystem: Onboarding Concluído! Gravado no localStorage: " + userKey + " = true");
+                
                 document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
                 
                 const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
@@ -1270,7 +1289,7 @@ window.PetMasterSystem = {
                 <h3 style="color:#1a1850; font-size: 22px; font-weight:900;">Censo Concluído com Sucesso!</h3>
                 <p style="color:#475569; margin: 12px 0 20px 0; line-height: 1.5;">Seus bichinhos foram cadastrados! O seu Widget Flutuante de Arrasas e sua 1ª Medalha já estão ativos no canto da tela!</p>
                 <a href="${this.whatsappArrasasUrl}" target="_blank" class="btn-whatsapp-arrasas">💬 Acompanhar Meus Arrasas no WhatsApp</a>
-                <button class="btn-close-final" id="btn-final-dismiss" style="display: block; width: 100%; margin-top: 14px; background: transparent; border: none; color: #94a3b8; text-decoration: underline; cursor: pointer;">Fechar and Navegar</button>
+                <button class="btn-close-final" id="btn-final-dismiss" style="display: block; width: 100%; margin-top: 14px; background: transparent; border: none; color: #94a3b8; text-decoration: underline; cursor: pointer;">Fechar e Navegar</button>
             </div>
         `;
         this.formElements.finalScreen.innerHTML = containerHtml;
