@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V42.0: PRECISION SPOTLIGHT & SANDBOX ENHANCEMENTS
+   SISTEMA MASTER PRO V43.0: MOBILE RESPONSIVE & TOP NAV PRECISION SPOTLIGHT
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,12 +8,13 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v42")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v43")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v42";
+        style.id = "pet-master-system-styles-pro-v43";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
+            html, body { max-width: 100vw; overflow-x: hidden; }
             body.modal-open-circle { overflow: hidden !important; }
             
             /* -------------------------------------
@@ -81,13 +82,14 @@
             /* -------------------------------------
                2. ONBOARDING TOUR TRANSPARENTE DESKTOP
                ------------------------------------- */
-            .pet-overlay-global { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2147483647 !important; display: flex; align-items: center; justify-content: center; font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; transition: background-color 0.5s ease; }
+            .pet-overlay-global { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2147483647 !important; display: flex; align-items: center; justify-content: center; font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; transition: background-color 0.5s ease; overflow: hidden; }
             
             .pet-spotlight-ring {
                 position: fixed; z-index: 2147483645; pointer-events: none;
                 border: 3px solid #e08b26; border-radius: 14px;
                 box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.78), 0 0 30px rgba(224, 139, 38, 0.85);
                 transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                max-width: calc(100vw - 8px);
             }
 
             .pet-tour-wrapper {
@@ -158,7 +160,7 @@
             .paw-step-container { position: absolute; font-size: 44px; z-index: 2147483648; pointer-events: none; opacity: 1; transition: opacity 0.5s ease; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.3)); }
             .paw-stamp { display: inline-block; }
 
-            .pet-form-card { background: #ffffff; width: 92%; max-width: 500px; border-radius: 28px; box-shadow: 0 25px 60px -10px rgba(15, 23, 42, 0.45); overflow: hidden; display: flex; flex-direction: column; position: relative; }
+            .pet-form-card { background: #ffffff; width: 94%; max-width: 500px; max-height: 90vh; border-radius: 28px; box-shadow: 0 25px 60px -10px rgba(15, 23, 42, 0.45); overflow-y: auto; display: flex; flex-direction: column; position: relative; }
             
             .pet-form-header { background: linear-gradient(135deg, #1a1850 0%, #0f172a 100%); color: white; padding: 24px; text-align: center; position: relative; display: flex; flex-direction: column; align-items: center; }
             .pet-form-header h3 { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.3; }
@@ -178,7 +180,7 @@
             .pet-input-group { margin-bottom: 18px; position: relative; }
             .pet-input-group label { display: block; font-size: 14px; font-weight: 700; color: #334155; margin-bottom: 8px; line-height: 1.4; }
             
-            .pet-field { width: 100%; padding: 14px 16px; border: 2px solid #cbd5e1; border-radius: 14px; font-size: 15px; box-sizing: border-box; background: #f8fafc; color: #0f172a; transition: all 0.3s ease; }
+            .pet-field { width: 100%; padding: 14px 16px; border: 2px solid #cbd5e1; border-radius: 14px; font-size: 16px !important; box-sizing: border-box; background: #f8fafc; color: #0f172a; transition: all 0.3s ease; }
             .pet-field:focus { outline: none; border-color: #e08b26; background: #ffffff; box-shadow: 0 0 0 4px rgba(224, 139, 38, 0.15); transform: translateY(-2px); }
             
             .pet-image-preview-container { margin-top: 12px; width: 100%; height: 140px; border-radius: 14px; overflow: hidden; border: 2px dashed #cbd5e1; display: none; align-items: center; justify-content: center; background: #f1f5f9; position: relative; }
@@ -189,7 +191,7 @@
             .autocomplete-item:hover { background: #fff9f2; color: #e08b26; font-weight: 700; padding-left: 20px; }
             
             .pet-form-footer { display: flex; justify-content: space-between; margin-top: 24px; gap: 12px; }
-            .btn-pet { padding: 14px 20px; border-radius: 14px; font-weight: 800; cursor: pointer; border: none; flex: 1; font-size: 15px; transition: all 0.2s; box-shadow: 0 4px 0 rgba(0,0,0,0.05); white-space: nowrap; }
+            .btn-pet { padding: 14px 20px; border-radius: 14px; font-weight: 800; cursor: pointer; border: none; flex: 1; font-size: 15px; transition: all 0.2s; box-shadow: 0 4px 0 rgba(0,0,0,0.05); white-space: nowrap; min-height: 48px; }
             .btn-pet:active { transform: translateY(3px); box-shadow: none; }
             .btn-pet-next { background: #e08b26; color: white; }
             .btn-pet-next:hover { background: #c7761b; }
@@ -202,7 +204,7 @@
             .btn-close-final { background: none; border: none; color: #64748b; text-decoration: underline; margin-top: 18px; cursor: pointer; font-size: 14px; }
 
             /* -------------------------------------
-               3. ADAPTAÇÃO MOBILE PREMIUM
+               3. ADAPTAÇÃO MOBILE ULTRA RESPONSIVA
                ------------------------------------- */
             @media (max-width: 768px) {
                 .pet-tour-wrapper {
@@ -218,32 +220,32 @@
                     justify-content: flex-end !important;
                     z-index: 2147483646 !important;
                     pointer-events: none !important;
-                    padding-top: 140px !important;
+                    padding: 0 !important;
                 }
                 .pet-tour-card {
                     width: 100% !important;
                     max-width: 100% !important;
-                    max-height: 75vh !important;
+                    max-height: 72vh !important;
                     overflow-y: auto !important;
-                    padding: 20px 18px max(24px, env(safe-area-inset-bottom, 24px)) 18px !important;
-                    border-radius: 24px 24px 0 0 !important;
+                    padding: 20px 16px max(20px, env(safe-area-inset-bottom, 20px)) 16px !important;
+                    border-radius: 26px 26px 0 0 !important;
                     border: 2px solid #e08b26 !important;
                     border-bottom: none !important;
-                    box-shadow: 0 -15px 40px rgba(15, 23, 42, 0.65) !important;
+                    box-shadow: 0 -15px 45px rgba(15, 23, 42, 0.75) !important;
                     pointer-events: auto !important;
                 }
                 .pet-tour-dandara-side {
-                    width: 110px !important;
-                    height: 160px !important;
+                    width: 100px !important;
+                    height: 140px !important;
                     position: absolute !important;
-                    top: 0px !important;
+                    top: -110px !important;
                     right: 15px !important;
                     margin: 0 !important;
-                    z-index: 10 !important;
+                    z-index: 2147483647 !important;
                     pointer-events: auto !important;
                     filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5)) !important;
                 }
-                .pet-tour-title { font-size: 17px !important; margin-bottom: 8px !important; }
+                .pet-tour-title { font-size: 17px !important; margin-bottom: 8px !important; line-height: 1.3 !important; }
                 .pet-tour-desc { font-size: 13px !important; margin-bottom: 16px !important; line-height: 1.45 !important; }
                 .pet-guide-header { padding: 6px 12px !important; margin-bottom: 10px !important; max-width: calc(100% - 110px) !important; }
                 .pet-guide-name { font-size: 13px !important; }
@@ -254,7 +256,12 @@
                     bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
                     right: 16px !important;
                 }
-                .btn-pet { padding: 12px 14px !important; font-size: 13.5px !important; font-weight: 800 !important; }
+                .btn-pet { padding: 12px 14px !important; font-size: 13.5px !important; font-weight: 800 !important; min-height: 44px !important; }
+                
+                .pet-spotlight-ring {
+                    border-width: 2.5px !important;
+                    box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.82), 0 0 20px rgba(224, 139, 38, 0.85) !important;
+                }
             }
         `;
         document.head.appendChild(style);
@@ -396,12 +403,13 @@ var PetMasterSystem = {
             desc: "Na <b>Barra Superior</b> você navega pelos botões de <b>Cursos</b>, <b>Painel da Aluna</b>, <b>Agenda</b> e <b>Membros</b> para assistir às aulas e acompanhar todo o seu curso!",
             breadcrumb: "📍 Passo 2 de 4 > Barra Superior (Topo)",
             selectors: [
-                "header",
+                "[class*='community-header']",
+                "[class*='top-nav']",
                 "nav[class*='top']",
-                "div[class*='header-container']",
+                "[class*='header-container']",
                 "#top-nav"
             ],
-            keywords: ["cursos", "painel", "agenda"],
+            keywords: ["cursos", "página inicial", "pagina inicial", "agenda"],
             pose: "apontando"
         },
         {
@@ -969,12 +977,42 @@ var PetMasterSystem = {
     findTargetElement: function(locConfig) {
         if (!locConfig) return null;
 
+        // VERIFICAÇÃO DE ALTA PRECISÃO PARA O PASSO 2 (BARRA SUPERIOR)
+        if (locConfig.breadcrumb && locConfig.breadcrumb.includes("Passo 2")) {
+            const topNavs = document.querySelectorAll("header, nav, [class*='header'], [class*='nav']");
+            for (const el of topNavs) {
+                if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
+                    // Ignora o cabeçalho interno da página do Feed
+                    if (el.closest('main') || el.closest('[class*="feed"]') || el.closest('[class*="post"]')) continue;
+                    const text = (el.innerText || el.textContent || '').toLowerCase();
+                    if (text.includes('cursos') || text.includes('página inicial') || text.includes('pagina inicial') || text.includes('membros')) {
+                        return el;
+                    }
+                }
+            }
+        }
+
+        // VERIFICAÇÃO DE ALTA PRECISÃO PARA O PASSO 3 (NOVA PUBLICAÇÃO)
+        if (locConfig.breadcrumb && locConfig.breadcrumb.includes("Passo 3")) {
+            const btns = document.querySelectorAll("a, button, [role='button']");
+            for (const btn of btns) {
+                if (btn && btn.offsetWidth > 0 && btn.offsetHeight > 0) {
+                    const text = (btn.innerText || btn.textContent || '').toLowerCase().trim();
+                    if (text.includes('nova publicação') || text.includes('nova publicacao') || text.includes('novo post')) {
+                        return btn;
+                    }
+                }
+            }
+        }
+
+        // BUSCA PADRÃO POR SELETORES
         if (locConfig.selectors && locConfig.selectors.length > 0) {
             for (const sel of locConfig.selectors) {
                 try {
                     const els = document.querySelectorAll(sel);
                     for (const el of els) {
                         if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
+                            if (sel.includes('header') && (el.closest('main') || el.querySelector('h1, h2'))) continue;
                             return el;
                         }
                     }
@@ -982,6 +1020,7 @@ var PetMasterSystem = {
             }
         }
 
+        // BUSCA PADRÃO POR PALAVRAS-CHAVE
         if (locConfig.keywords && locConfig.keywords.length > 0) {
             const candidates = document.querySelectorAll('aside, header, nav, a, button, [role="button"]');
             for (const el of candidates) {
