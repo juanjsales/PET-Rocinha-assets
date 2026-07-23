@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V41.0: MODO SANDBOX INTEGRADO & SUÍTE DE TESTES
+   SISTEMA MASTER PRO V42.0: PRECISION SPOTLIGHT & SANDBOX ENHANCEMENTS
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v41")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v42")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v41";
+        style.id = "pet-master-system-styles-pro-v42";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -263,7 +263,7 @@
     }
 })();
 
-window.PetMasterSystem = {
+var PetMasterSystem = {
     urlAppScript: "https://script.google.com/macros/s/AKfycbyCtBQ_wVDEpyKybzHgo9eFswc6tczQuFs53VLzg3t9HuoFbLOVVY_zrVScPxIwG2b0/exec",
     webhookUrlMake: "https://hook.eu1.make.com/clput5qjl61dnyoy3nf2vsloc86zhhfn",
     whatsappArrasasUrl: "https://wa.me/5521982013090?text=Oi",
@@ -376,7 +376,7 @@ window.PetMasterSystem = {
         } catch(e) {}
     },
 
-    /* NOVO FLUXO EM 4 PASSOS SOLICITADO PELO USUÁRIO */
+    /* FLUXO EM 4 PASSOS STREAMLINED COM SELETORES DE ALTA PRECISÃO */
     tourLocations: [
         {
             title: "🚀 Conheça seu Menu Lateral",
@@ -406,14 +406,13 @@ window.PetMasterSystem = {
         },
         {
             title: "✍️ Onde Publicar seus Posts",
-            desc: "Quer publicar uma conquista ou fazer uma pergunta para a comunidade? Basta clicar neste botão <b>+ Nova publicação</b> para criar seu post!",
-            breadcrumb: "📍 Passo 3 de 4 > Botão + Nova Publicação (Topo Direito)",
+            desc: "Quer publicar uma conquista ou fazer uma pergunta para a comunidade? Basta clicar neste botão <b>Nova publicação</b> para criar seu post!",
+            breadcrumb: "📍 Passo 3 de 4 > Botão Nova Publicação (Topo Direito)",
             selectors: [
-                "a[href*='new_post']",
                 "a[href*='posts/new']",
+                "a[href*='new_post']",
                 "button[class*='new-post']",
-                "[data-testid*='new-post']",
-                "a[class*='btn-primary']"
+                "[data-testid*='new-post']"
             ],
             keywords: ["nova publicação", "nova publicacao", "novo post"],
             pose: "apontando"
@@ -1406,6 +1405,7 @@ window.PetMasterSystem = {
     }
 };
 
+window.PetMasterSystem = PetMasterSystem;
 window.PetMasterSystem_receberDadosWidget = function(data) { PetMasterSystem.receberDadosWidget(data); };
 if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => { PetMasterSystem.setupSPANavigationObserver(); PetMasterSystem.init(); }, 100); } 
 else { window.addEventListener("load", () => setTimeout(() => { PetMasterSystem.setupSPANavigationObserver(); PetMasterSystem.init(); }, 100)); }
