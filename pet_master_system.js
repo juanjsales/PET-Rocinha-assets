@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V32.0: EMAIL-BOUND ONBOARDING TRACKING & AUTO-TRIGGER
+   SISTEMA MASTER PRO V33.0: DEEP LOCALSTORAGE EMAIL SCANNER FOR CIRCLE
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v32")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v33")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v32";
+        style.id = "pet-master-system-styles-pro-v33";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -466,11 +466,28 @@ window.PetMasterSystem = {
         return true;
     },
 
+    _deepSearchEmail: function(obj) {
+        if (!obj || typeof obj !== 'object') return null;
+        if (obj.email && typeof obj.email === 'string' && obj.email.includes('@')) return obj.email;
+        for (const k in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, k)) {
+                if (typeof obj[k] === 'object') {
+                    const res = this._deepSearchEmail(obj[k]);
+                    if (res) return res;
+                } else if (k.toLowerCase().includes('email') && typeof obj[k] === 'string' && obj[k].includes('@')) {
+                    return obj[k];
+                }
+            }
+        }
+        return null;
+    },
+
     capturarEmailRobusto: function() {
         if (this.sandboxMode) return this.sandboxEmail;
         let currentSystemEmail = null;
 
         try {
+            // 1. Variáveis globais do Circle
             if (window.circleUser?.email) {
                 currentSystemEmail = String(window.circleUser.email).toLowerCase().trim();
             }
@@ -481,22 +498,56 @@ window.PetMasterSystem = {
                 currentSystemEmail = String(window.Circle.currentUser.email).toLowerCase().trim();
             }
 
+            // 2. Chaves específicas do LocalStorage onde o Circle injeta o usuário
             if (!currentSystemEmail) {
-                const keysToTry = ['V1-PunditUserContext', 'V1-CurrentMemberContext', 'V1-UserContext', 'PunditUserContext'];
-                for (const key of keysToTry) {
+                const circleKeys = [
+                    'V1-PunditUserContext',
+                    'V1-CurrentMemberContext',
+                    'V1-UserContext',
+                    'PunditUserContext',
+                    'current_user',
+                    'circle_user',
+                    'user'
+                ];
+                for (const key of circleKeys) {
                     const item = localStorage.getItem(key);
-                    if (item) {
+                    if (item && item.includes('@')) {
                         try {
                             const parsed = JSON.parse(item);
-                            const email = parsed.current_user?.email || 
-                                          parsed.current_community_member?.email || 
-                                          parsed.user?.email || 
-                                          parsed.member?.email;
-                            if (email) {
+                            const email = parsed?.current_user?.email || 
+                                          parsed?.current_community_member?.email || 
+                                          parsed?.user?.email || 
+                                          parsed?.member?.email ||
+                                          parsed?.email;
+                            if (email && String(email).includes('@')) {
                                 currentSystemEmail = String(email).toLowerCase().trim();
                                 break;
                             }
                         } catch(e){}
+                    }
+                }
+            }
+
+            // 3. Varredura profunda em TODAS as chaves do LocalStorage do Circle
+            if (!currentSystemEmail) {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (!k) continue;
+                    const val = localStorage.getItem(k);
+                    if (val && val.includes('@')) {
+                        try {
+                            const parsed = JSON.parse(val);
+                            const foundEmail = this._deepSearchEmail(parsed);
+                            if (foundEmail) {
+                                currentSystemEmail = String(foundEmail).toLowerCase().trim();
+                                break;
+                            }
+                        } catch(e) {
+                            if (val.includes('@') && val.length < 100 && val.includes('.')) {
+                                currentSystemEmail = val.toLowerCase().trim();
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -534,7 +585,6 @@ window.PetMasterSystem = {
     },
 
     init: function() {
-        // 1. Somente se o membro estiver logado
         if (!this.isMembroLogado()) {
             document.getElementById(this.constants.WIDGET_ID)?.remove();
             document.getElementById(this.constants.FULLBODY_ID)?.remove();
@@ -543,13 +593,11 @@ window.PetMasterSystem = {
             return;
         }
 
-        // 2. Identifica o e-mail da aluna logada no Circle
+        // Tenta capturar o e-mail injetado pelo Circle
         this.emailAluna = this.capturarEmailRobusto();
 
-        // 3. Exibe o Widget Flutuante no canto
         this.iniciarWidget();
         
-        // 4. Checagem de Onboarding VINCULADA AO E-MAIL DA ALUNA
         const urlParams = new URLSearchParams(window.location.search);
         const forceOnboarding = urlParams.get('onboarding') === 'true';
 
@@ -561,7 +609,6 @@ window.PetMasterSystem = {
         const censoConcluido = !this.sandboxMode && this.safeStorage('get', this.constants.LS_PARTICIPADO) === "true";
 
         if (!onboardingConcluido) {
-            // ASSIM QUE IDENTIFICAR O E-MAIL PELA PRIMEIRA VEZ: Exibe o Onboarding e a Caminhada!
             console.log("🐾 PetMasterSystem: E-mail identificado (" + this.emailAluna + "). Iniciando Onboarding para a aluna!");
             this.censoEmAndamento = true;
             this.fazerCaminhadaVertical();
@@ -982,7 +1029,6 @@ window.PetMasterSystem = {
                 this.tourCurrentStep++;
                 this.renderTourStep(this.tourCurrentStep);
             } else {
-                // GRAVA NO LOCALSTORAGE QUE ESTA ALUNA ESPECIFICA JA VIU O ONBOARDING!
                 if (this.emailAluna) {
                     this.safeStorage('set', this.getUserOnboardingKey(this.emailAluna), "true");
                 }
@@ -1224,7 +1270,7 @@ window.PetMasterSystem = {
                 <h3 style="color:#1a1850; font-size: 22px; font-weight:900;">Censo Concluído com Sucesso!</h3>
                 <p style="color:#475569; margin: 12px 0 20px 0; line-height: 1.5;">Seus bichinhos foram cadastrados! O seu Widget Flutuante de Arrasas e sua 1ª Medalha já estão ativos no canto da tela!</p>
                 <a href="${this.whatsappArrasasUrl}" target="_blank" class="btn-whatsapp-arrasas">💬 Acompanhar Meus Arrasas no WhatsApp</a>
-                <button class="btn-close-final" id="btn-final-dismiss" style="display: block; width: 100%; margin-top: 14px; background: transparent; border: none; color: #94a3b8; text-decoration: underline; cursor: pointer;">Fechar e Navegar</button>
+                <button class="btn-close-final" id="btn-final-dismiss" style="display: block; width: 100%; margin-top: 14px; background: transparent; border: none; color: #94a3b8; text-decoration: underline; cursor: pointer;">Fechar and Navegar</button>
             </div>
         `;
         this.formElements.finalScreen.innerHTML = containerHtml;
