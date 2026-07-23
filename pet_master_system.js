@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V34.0: DIRECT EMAIL-KEY ONBOARDING SHOW RULE
+   SISTEMA MASTER PRO V35.0: ENTERPRISE CIRCLE.SO SPA & NATIVE API INTEGRATION
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v34")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v35")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v34";
+        style.id = "pet-master-system-styles-pro-v35";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -220,7 +220,7 @@
             .btn-close-final { background: none; border: none; color: #64748b; text-decoration: underline; margin-top: 18px; cursor: pointer; font-size: 14px; }
 
             /* -------------------------------------
-               3. ADAPTAÇÃO MOBILE PREMIUM (BOTTOM SHEET DRAWER & PERFECT FIT)
+               3. ADAPTAÇÃO MOBILE PREMIUM
                ------------------------------------- */
             @media (max-width: 768px) {
                 .pet-tour-wrapper {
@@ -563,7 +563,6 @@ window.PetMasterSystem = {
 
     getUserOnboardingKey: function(email) {
         if (!email) {
-            // Se ainda não tiver o e-mail exato extraído, usa um identificador de sessão do Circle
             const spaces = localStorage.getItem('V1-SpaceGroupsContextProvider') || '';
             const pundit = localStorage.getItem('V1-PunditUserContext') || '';
             const raw = (spaces + pundit).replace(/[^a-z0-9]/gi, '');
@@ -574,6 +573,52 @@ window.PetMasterSystem = {
         }
         const cleanEmail = String(email).toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
         return 'pet_onboarding_v1_seen_' + cleanEmail;
+    },
+
+    obterMembroCircleAPI: function() {
+        // Chamada nativa ao endpoint interno do Circle.so para obter o e-mail da aluna logada
+        if (this.sandboxMode) return;
+        const self = this;
+        try {
+            fetch('/_api/v1/members/me', { credentials: 'include' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data && (data.email || data.member?.email)) {
+                        const emailVerificado = (data.email || data.member?.email).toLowerCase().trim();
+                        self.emailAluna = emailVerificado;
+                        self.safeStorage('set', self.constants.LS_USER_EMAIL, emailVerificado);
+                        self.verificarEIniciarOnboarding();
+                    }
+                })
+                .catch(() => {});
+        } catch(e) {}
+    },
+
+    setupSPANavigationObserver: function() {
+        const self = this;
+        let lastPath = window.location.pathname;
+        
+        // Monitora trocas de rota no Next.js/React Router do Circle
+        const onPathChange = () => {
+            if (window.location.pathname !== lastPath) {
+                lastPath = window.location.pathname;
+                setTimeout(() => self.init(), 200);
+            }
+        };
+
+        window.addEventListener('popstate', onPathChange);
+
+        const _pushState = history.pushState;
+        history.pushState = function() {
+            _pushState.apply(this, arguments);
+            onPathChange();
+        };
+
+        const _replaceState = history.replaceState;
+        history.replaceState = function() {
+            _replaceState.apply(this, arguments);
+            onPathChange();
+        };
     },
 
     forceStartOnboarding: function() {
@@ -590,28 +635,10 @@ window.PetMasterSystem = {
         this.forceStartOnboarding();
     },
 
-    init: function() {
-        // 1. Apenas para membros logados na comunidade
-        if (!this.isMembroLogado()) {
-            document.getElementById(this.constants.WIDGET_ID)?.remove();
-            document.getElementById(this.constants.FULLBODY_ID)?.remove();
-            document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
-            document.getElementById("circle-popup-socoeco")?.remove();
-            return;
-        }
-
-        // 2. Extrai e-mail da aluna logada
-        this.emailAluna = this.capturarEmailRobusto();
-
-        // 3. Renderiza o Widget Flutuante
-        this.iniciarWidget();
-        
-        // 4. Parâmetro de forçar URL ?onboarding=true
+    verificarEIniciarOnboarding: function() {
         const urlParams = new URLSearchParams(window.location.search);
         const forceOnboarding = urlParams.get('onboarding') === 'true';
 
-        // 5. REGRA DIRETA E ABSOLUTA DO LOCALSTORAGE:
-        //    Se no localStorage NÃO tiver "pet_onboarding_v1_seen_<email_da_aluna>", "true" -> MOSTRAR!
         const userKey = this.getUserOnboardingKey(this.emailAluna);
 
         if (forceOnboarding) {
@@ -635,6 +662,21 @@ window.PetMasterSystem = {
                 this.exibirTravaSocioeconomicoPopup();
             }
         }
+    },
+
+    init: function() {
+        if (!this.isMembroLogado()) {
+            document.getElementById(this.constants.WIDGET_ID)?.remove();
+            document.getElementById(this.constants.FULLBODY_ID)?.remove();
+            document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
+            document.getElementById("circle-popup-socoeco")?.remove();
+            return;
+        }
+
+        this.emailAluna = this.capturarEmailRobusto();
+        this.iniciarWidget();
+        this.verificarEIniciarOnboarding();
+        this.obterMembroCircleAPI();
     },
 
     safeStorage: function(action, key, value) {
@@ -905,7 +947,6 @@ window.PetMasterSystem = {
     findTargetElement: function(locConfig) {
         if (!locConfig) return null;
 
-        // 1. Tentar seletores CSS diretos
         if (locConfig.selectors && locConfig.selectors.length > 0) {
             for (const sel of locConfig.selectors) {
                 try {
@@ -919,7 +960,6 @@ window.PetMasterSystem = {
             }
         }
 
-        // 2. Buscador Inteligente por Texto de Botões/Links no DOM da Comunidade
         if (locConfig.keywords && locConfig.keywords.length > 0) {
             const candidates = document.querySelectorAll('a, button, [role="button"], li, div[class*="item"], div[class*="space"], nav a, aside a');
             for (const el of candidates) {
@@ -1046,7 +1086,6 @@ window.PetMasterSystem = {
                 this.tourCurrentStep++;
                 this.renderTourStep(this.tourCurrentStep);
             } else {
-                // GRAVA DIRETAMENTE NO LOCALSTORAGE QUE A ALUNA JA VIU O ONBOARDING!
                 const userKey = this.getUserOnboardingKey(this.emailAluna);
                 this.safeStorage('set', userKey, "true");
                 this.safeStorage('set', this.constants.LS_ONBOARDING_DONE, "true");
@@ -1344,5 +1383,5 @@ window.PetMasterSystem = {
 };
 
 window.PetMasterSystem_receberDadosWidget = function(data) { PetMasterSystem.receberDadosWidget(data); };
-if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => PetMasterSystem.init(), 100); } 
-else { window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 100)); }
+if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => { PetMasterSystem.setupSPANavigationObserver(); PetMasterSystem.init(); }, 100); } 
+else { window.addEventListener("load", () => setTimeout(() => { PetMasterSystem.setupSPANavigationObserver(); PetMasterSystem.init(); }, 100)); }
