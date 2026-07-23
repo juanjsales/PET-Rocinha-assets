@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V30.0: STRICT AUTH & SINGLE ONBOARDING SHOW + REOPEN WIDGET
+   SISTEMA MASTER PRO V31.0: PERFECT CIRCLE AUTH & SPACE-GROUPS DETECTION
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v30")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v31")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v30";
+        style.id = "pet-master-system-styles-pro-v31";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -429,54 +429,49 @@ window.PetMasterSystem = {
     isMembroLogado: function() {
         if (this.sandboxMode) return true;
 
-        // A) Se for explicitamente página publica de login/cadastro -> NÃO É MEMBRO LOGADO
+        // 1. URLs explícitas de Login / Cadastro -> Deslogado
         const path = window.location.pathname.toLowerCase();
         if (path.includes('/users/sign_in') || path.includes('/users/sign_up') || path.includes('/sign_up')) {
             return false;
         }
 
-        // B) Se a pagina tem classe is-signed-out no body e nenhum email/usuario no Pundit
-        if (document.body && document.body.classList.contains('is-signed-out')) {
-            const pundit = localStorage.getItem('V1-PunditUserContext');
-            if (!pundit || pundit.includes('"current_user":null')) {
-                return false;
-            }
+        // 2. Chaves do Circle no LocalStorage (V1-SpaceGroupsContextProvider contém os grupos de espaço da aluna)
+        const spaces = localStorage.getItem('V1-SpaceGroupsContextProvider');
+        if (spaces && spaces.length > 10 && (spaces.includes('"id"') || spaces.includes('Meu Perfil') || spaces.includes('slug'))) {
+            return true;
         }
 
-        // C) Objetos globais do Circle
+        // 3. Objeto circleUser nativo do Circle
         if (window.circleUser) {
             if (window.circleUser.signedIn === true || window.circleUser.signedIn === 'true') return true;
             if (window.circleUser.signedIn === false || window.circleUser.signedIn === 'false') return false;
         }
 
+        // 4. Globais do Circle
         if (window.current_user?.email || window.current_community_member?.id || window.Circle?.currentUser?.id) {
             return true;
         }
 
-        // D) LocalStorage PunditUserContext (Usuário logado)
-        try {
-            const pundit = localStorage.getItem('V1-PunditUserContext');
-            if (pundit && pundit.includes('"current_user"') && !pundit.includes('"current_user":null')) {
-                return true;
-            }
-            const spaces = localStorage.getItem('V1-SpaceGroupsContextProvider');
-            if (spaces && spaces.includes('"id"')) {
-                return true;
-            }
-        } catch(e) {}
-
-        // E) Se document.body tem is-signed-in
+        // 5. Classes no Body do Circle
         if (document.body && document.body.classList.contains('is-signed-in')) {
             return true;
         }
 
-        // F) Fallback para email em cache
-        const cachedEmail = this.safeStorage('get', this.constants.LS_USER_EMAIL);
-        if (cachedEmail && cachedEmail !== "null" && cachedEmail !== "undefined" && !cachedEmail.includes('aluna@comunidade')) {
-            return true;
+        // 6. PunditUserContext no LocalStorage
+        const pundit = localStorage.getItem('V1-PunditUserContext');
+        if (pundit && pundit.includes('"current_community"')) {
+            if (document.querySelector('a[href*="/u/"], [data-testid*="user-menu"], .user-menu, .avatar')) {
+                return true;
+            }
         }
 
-        return false;
+        // 7. Se o body contem is-signed-out E NAO TEM spaces no localStorage -> Deslogado
+        if (document.body && document.body.classList.contains('is-signed-out') && (!spaces || spaces.length < 5)) {
+            return false;
+        }
+
+        // 8. Se estiver em qualquer página da comunidade (comunidade.aprenderecuidar.com.br) -> Padrão Membro Logado
+        return true;
     },
 
     capturarEmailRobusto: function() {
