@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V44.0: PERFECT SPOTLIGHT POSITIONING & NO WIDGET OVERLAP
+   SISTEMA MASTER PRO V45.0: DOM EXACT SELECTORS FOR STEP 2 & STEP 3
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v44")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v45")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v44";
+        style.id = "pet-master-system-styles-pro-v45";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -387,7 +387,7 @@ var PetMasterSystem = {
         } catch(e) {}
     },
 
-    /* FLUXO EM 4 PASSOS STREAMLINED COM SELETORES DE ALTA PRECISÃO */
+    /* FLUXO EM 4 PASSOS STREAMLINED COM SELETORES DE EXATA PRECISÃO DO CIRCLE.SO */
     tourLocations: [
         {
             title: "🚀 Conheça seu Menu Lateral",
@@ -405,28 +405,29 @@ var PetMasterSystem = {
         {
             title: "🎓 Barra Superior de Conteúdos",
             desc: "Na <b>Barra Superior</b> você navega pelos botões de <b>Cursos</b>, <b>Painel da Aluna</b>, <b>Agenda</b> e <b>Membros</b> para assistir às aulas e acompanhar todo o seu curso!",
-            breadcrumb: "📍 Passo 2 de 4 > Barra Superior (Topo)",
+            breadcrumb: "📍 Passo 2 de 4 > Barra Superior (header-navigation-bar)",
             selectors: [
+                ".header-navigation-bar",
+                "[class*='header-navigation-bar']",
+                "#header-navigation-bar",
+                "[data-testid*='header-navigation-bar']",
                 "[class*='community-header']",
-                "[class*='top-nav']",
-                "nav[class*='top']",
-                "[class*='header-container']",
-                "#top-nav"
+                "header"
             ],
             keywords: ["cursos", "página inicial", "pagina inicial", "agenda"],
             pose: "apontando"
         },
         {
             title: "✍️ Onde Publicar seus Posts",
-            desc: "Quer publicar uma conquista ou fazer uma pergunta para a comunidade? Basta clicar neste botão <b>Nova publicação</b> para criar seu post!",
-            breadcrumb: "📍 Passo 3 de 4 > Botão Nova Publicação (Topo Direito)",
+            desc: "Quer publicar uma conquista ou fazer uma pergunta para a comunidade? Basta clicar neste botão <b>Criar uma publicação</b> para criar seu post!",
+            breadcrumb: "📍 Passo 3 de 4 > Botão Criar uma Publicação",
             selectors: [
+                "button[class*='border-primary'][class*='bg-primary']",
+                "[data-testid*='new-post']",
                 "a[href*='posts/new']",
-                "a[href*='new_post']",
-                "button[class*='new-post']",
-                "[data-testid*='new-post']"
+                "a[href*='new_post']"
             ],
-            keywords: ["nova publicação", "nova publicacao", "novo post"],
+            keywords: ["criar uma publicação", "criar uma publicacao", "nova publicação", "nova publicacao", "novo post"],
             pose: "apontando"
         },
         {
@@ -981,12 +982,15 @@ var PetMasterSystem = {
     findTargetElement: function(locConfig) {
         if (!locConfig) return null;
 
-        // VERIFICAÇÃO DE ALTA PRECISÃO PARA O PASSO 2 (BARRA SUPERIOR)
+        // VERIFICAÇÃO DE EXATA PRECISÃO PARA O PASSO 2 (HEADER NAVIGATION BAR)
         if (locConfig.breadcrumb && locConfig.breadcrumb.includes("Passo 2")) {
+            const navBar = document.querySelector(".header-navigation-bar, [class*='header-navigation-bar'], #header-navigation-bar");
+            if (navBar && navBar.offsetWidth > 0 && navBar.offsetHeight > 0) {
+                return navBar;
+            }
             const topNavs = document.querySelectorAll("header, nav, [class*='header'], [class*='nav']");
             for (const el of topNavs) {
                 if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
-                    // Ignora o cabeçalho interno da página do Feed
                     if (el.closest('main') || el.closest('[class*="feed"]') || el.closest('[class*="post"]')) continue;
                     const text = (el.innerText || el.textContent || '').toLowerCase();
                     if (text.includes('cursos') || text.includes('página inicial') || text.includes('pagina inicial') || text.includes('membros')) {
@@ -996,13 +1000,15 @@ var PetMasterSystem = {
             }
         }
 
-        // VERIFICAÇÃO DE ALTA PRECISÃO PARA O PASSO 3 (NOVA PUBLICAÇÃO)
+        // VERIFICAÇÃO DE EXATA PRECISÃO PARA O PASSO 3 (CRIAR UMA PUBLICAÇÃO / + BUTTON)
         if (locConfig.breadcrumb && locConfig.breadcrumb.includes("Passo 3")) {
-            const btns = document.querySelectorAll("a, button, [role='button']");
+            const btns = document.querySelectorAll("button, a, [role='button']");
             for (const btn of btns) {
                 if (btn && btn.offsetWidth > 0 && btn.offsetHeight > 0) {
                     const text = (btn.innerText || btn.textContent || '').toLowerCase().trim();
-                    if (text.includes('nova publicação') || text.includes('nova publicacao') || text.includes('novo post')) {
+                    const html = btn.innerHTML || '';
+                    const cls = typeof btn.className === 'string' ? btn.className : '';
+                    if (text.includes('criar uma publicação') || text.includes('criar uma publicacao') || text.includes('nova publicação') || html.includes('icon-20-plus-v2') || (cls.includes('border-primary') && cls.includes('bg-primary'))) {
                         return btn;
                     }
                 }
