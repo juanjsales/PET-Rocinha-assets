@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V28.0: ONBOARDING FIX & RESILIENT CIRCLE ROUTER
+   SISTEMA MASTER PRO V29.0: FORCE ONBOARDING GUARANTEE & UNCONDITIONAL LOADER
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v28")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v29")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v28";
+        style.id = "pet-master-system-styles-pro-v29";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -426,15 +426,6 @@ window.PetMasterSystem = {
         }
     ],
 
-    isVisitanteDeslogadoExplicito: function() {
-        if (this.sandboxMode) return false;
-        // Somente retorne true se a página for comprovadamente a tela publica deslogada do Circle
-        if (document.body && document.body.classList.contains('is-signed-out')) return true;
-        const path = window.location.pathname.toLowerCase();
-        if (path.includes('/users/sign_in') || path.includes('/users/sign_up') || path.includes('/sign_up')) return true;
-        return false;
-    },
-
     capturarEmailRobusto: function() {
         if (this.sandboxMode) return this.sandboxEmail;
         let currentSystemEmail = null;
@@ -482,9 +473,27 @@ window.PetMasterSystem = {
         return "aluna@comunidade.aprenderecuidar.com.br";
     },
 
+    forceStartOnboarding: function() {
+        console.log("🐾 PetMasterSystem: Forçando início do Onboarding!");
+        this.safeStorage('remove', this.constants.LS_ONBOARDING_DONE);
+        this.censoEmAndamento = true;
+        this.fazerCaminhadaVertical();
+    },
+
     init: function() {
-        // Se for explicitamente visitante deslogado em tela pública de login, não carrega
-        if (this.isVisitanteDeslogadoExplicito()) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const forceOnboarding = urlParams.get('onboarding') === 'true';
+
+        // FORCE ONBOARDING MODE: Se tiver ?onboarding=true na URL, IGNORE qualquer filtro e inicie imediatamente!
+        if (forceOnboarding) {
+            console.log("🐾 PetMasterSystem: Modo Force Onboarding Ativo (?onboarding=true)");
+            this.forceStartOnboarding();
+            return;
+        }
+
+        // Se for explicitamente a página de login (/users/sign_in), não carrega
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('/users/sign_in') || path.includes('/users/sign_up') || path.includes('/sign_up')) {
             document.getElementById(this.constants.WIDGET_ID)?.remove();
             document.getElementById(this.constants.FULLBODY_ID)?.remove();
             document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
@@ -493,14 +502,11 @@ window.PetMasterSystem = {
 
         this.emailAluna = this.capturarEmailRobusto();
 
-        // 1. Sempre exibe o Widget Flutuante da Mentora no canto da tela
+        // 1. Exibe o Widget Flutuante da Mentora no canto da tela
         this.iniciarWidget();
         
         // 2. Checagem de Onboarding / Censo
-        const urlParams = new URLSearchParams(window.location.search);
-        const forceOnboarding = urlParams.get('onboarding') === 'true';
-
-        const onboardingConcluido = !forceOnboarding && this.safeStorage('get', this.constants.LS_ONBOARDING_DONE) === "true";
+        const onboardingConcluido = this.safeStorage('get', this.constants.LS_ONBOARDING_DONE) === "true";
         const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
         const censoConcluido = !this.sandboxMode && this.safeStorage('get', this.constants.LS_PARTICIPADO) === "true";
 
@@ -1215,5 +1221,5 @@ window.PetMasterSystem = {
 };
 
 window.PetMasterSystem_receberDadosWidget = function(data) { PetMasterSystem.receberDadosWidget(data); };
-if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => PetMasterSystem.init(), 200); } 
-else { window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 200)); }
+if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => PetMasterSystem.init(), 100); } 
+else { window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 100)); }
