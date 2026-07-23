@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V38.0: 4-STEP STREAMLINED TOUR (SIDEBAR, HEADER, POST, WIDGET)
+   SISTEMA MASTER PRO V39.0: FIX NEXT/PREV NAVIGATION & EVENT HANDLERS
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v38")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v39")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v38";
+        style.id = "pet-master-system-styles-pro-v39";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -939,15 +939,18 @@ window.PetMasterSystem = {
 
     renderTourStep: function(stepIndex) {
         if (!this.isMembroLogado()) return;
-        let overlay = document.getElementById(this.constants.TOUR_OVERLAY_ID);
+        const self = this;
+        self.tourCurrentStep = stepIndex;
+
+        let overlay = document.getElementById(self.constants.TOUR_OVERLAY_ID);
         if (!overlay) {
             overlay = document.createElement('div');
-            overlay.id = this.constants.TOUR_OVERLAY_ID;
+            overlay.id = self.constants.TOUR_OVERLAY_ID;
             document.body.appendChild(overlay);
         }
 
-        const loc = this.tourLocations[stepIndex];
-        const targetEl = this.findTargetElement(loc);
+        const loc = self.tourLocations[stepIndex];
+        const targetEl = self.findTargetElement(loc);
 
         let spotlightHtml = '';
         let cardTop = '50%', cardLeft = '50%', transform = 'translate(-50%, -50%)';
@@ -981,8 +984,8 @@ window.PetMasterSystem = {
             if (window.innerWidth < 768) { cardLeft = '0px'; cardTop = 'auto'; transform = 'none'; }
         }
 
-        const isLastStep = stepIndex === this.tourLocations.length - 1;
-        const poseUrl = this.poses[loc.pose || "boasVindas"];
+        const isLastStep = stepIndex === self.tourLocations.length - 1;
+        const poseUrl = self.poses[loc.pose || "boasVindas"];
 
         overlay.innerHTML = `
             ${spotlightHtml}
@@ -993,8 +996,8 @@ window.PetMasterSystem = {
                 <div class="pet-tour-card" role="dialog" aria-modal="true">
                     <div class="pet-guide-header">
                         <div class="pet-guide-meta">
-                            <span class="pet-guide-name">${this.guideName} 👩🏾</span>
-                            <span class="pet-guide-role">${this.guideRole}</span>
+                            <span class="pet-guide-name">${self.guideName} 👩🏾</span>
+                            <span class="pet-guide-role">${self.guideRole}</span>
                         </div>
                     </div>
                     <div id="dandara-speech-bubble" class="pet-dandara-interactive-bubble"></div>
@@ -1002,10 +1005,10 @@ window.PetMasterSystem = {
                     <h3 class="pet-tour-title">${loc.title}</h3>
                     <p class="pet-tour-desc">${loc.desc}</p>
                     <div class="pet-tour-nav">
-                        <span class="pet-tour-step-count">Passo ${stepIndex + 1} de ${this.tourLocations.length}</span>
+                        <span class="pet-tour-step-count">Passo ${stepIndex + 1} de ${self.tourLocations.length}</span>
                         <div style="display:flex; gap: 8px;">
-                            ${stepIndex > 0 ? `<button class="btn-pet btn-pet-prev" id="pet-tour-prev">Voltar</button>` : ''}
-                            <button class="btn-pet btn-pet-next" id="pet-tour-next">
+                            ${stepIndex > 0 ? `<button type="button" class="btn-pet btn-pet-prev" id="pet-tour-prev">Voltar</button>` : ''}
+                            <button type="button" class="btn-pet btn-pet-next" id="pet-tour-next">
                                 ${isLastStep ? 'Concluir Tour 🚀' : 'Próximo Local ➡️'}
                             </button>
                         </div>
@@ -1014,37 +1017,39 @@ window.PetMasterSystem = {
             </div>
         `;
 
-        this.trapFocus(overlay);
+        self.trapFocus(overlay);
 
         const tourWrap = document.getElementById('dandara-tour-side-wrap');
-        if (tourWrap) this.ativarFalaDandara(tourWrap, 3500);
+        if (tourWrap) self.ativarFalaDandara(tourWrap, 3500);
 
-        tourWrap?.addEventListener('click', () => this.falarComDandara(tourWrap));
+        tourWrap?.addEventListener('click', () => self.falarComDandara(tourWrap));
 
-        document.getElementById('pet-tour-prev')?.addEventListener('click', () => {
-            if (this.tourCurrentStep > 0) {
-                this.tourCurrentStep--;
-                this.renderTourStep(this.tourCurrentStep);
+        document.getElementById('pet-tour-prev')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (self.tourCurrentStep > 0) {
+                self.renderTourStep(self.tourCurrentStep - 1);
             }
         });
 
-        document.getElementById('pet-tour-next')?.addEventListener('click', () => {
-            if (this.tourCurrentStep < this.tourLocations.length - 1) {
-                this.tourCurrentStep++;
-                this.renderTourStep(this.tourCurrentStep);
+        document.getElementById('pet-tour-next')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (self.tourCurrentStep < self.tourLocations.length - 1) {
+                self.renderTourStep(self.tourCurrentStep + 1);
             } else {
-                const userKey = this.getUserOnboardingKey(this.emailAluna);
-                this.safeStorage('set', userKey, "true");
-                this.safeStorage('set', this.constants.LS_ONBOARDING_DONE, "true");
+                const userKey = self.getUserOnboardingKey(self.emailAluna);
+                self.safeStorage('set', userKey, "true");
+                self.safeStorage('set', self.constants.LS_ONBOARDING_DONE, "true");
                 console.log("🐾 PetMasterSystem: Onboarding Concluído! Gravado no localStorage: " + userKey + " = true");
                 
-                document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
+                document.getElementById(self.constants.TOUR_OVERLAY_ID)?.remove();
                 
-                const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
+                const isSocio = self.safeStorage('get', self.constants.LS_USER_SOCIO) === "true";
                 if (isSocio) {
-                    this.iniciarCensoFormulario();
+                    self.iniciarCensoFormulario();
                 } else {
-                    this.exibirTravaSocioeconomicoPopup();
+                    self.exibirTravaSocioeconomicoPopup();
                 }
             }
         });
