@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V31.0: PERFECT CIRCLE AUTH & SPACE-GROUPS DETECTION
+   SISTEMA MASTER PRO V32.0: EMAIL-BOUND ONBOARDING TRACKING & AUTO-TRIGGER
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v31")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v32")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v31";
+        style.id = "pet-master-system-styles-pro-v32";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -429,35 +429,29 @@ window.PetMasterSystem = {
     isMembroLogado: function() {
         if (this.sandboxMode) return true;
 
-        // 1. URLs explícitas de Login / Cadastro -> Deslogado
         const path = window.location.pathname.toLowerCase();
         if (path.includes('/users/sign_in') || path.includes('/users/sign_up') || path.includes('/sign_up')) {
             return false;
         }
 
-        // 2. Chaves do Circle no LocalStorage (V1-SpaceGroupsContextProvider contém os grupos de espaço da aluna)
         const spaces = localStorage.getItem('V1-SpaceGroupsContextProvider');
         if (spaces && spaces.length > 10 && (spaces.includes('"id"') || spaces.includes('Meu Perfil') || spaces.includes('slug'))) {
             return true;
         }
 
-        // 3. Objeto circleUser nativo do Circle
         if (window.circleUser) {
             if (window.circleUser.signedIn === true || window.circleUser.signedIn === 'true') return true;
             if (window.circleUser.signedIn === false || window.circleUser.signedIn === 'false') return false;
         }
 
-        // 4. Globais do Circle
         if (window.current_user?.email || window.current_community_member?.id || window.Circle?.currentUser?.id) {
             return true;
         }
 
-        // 5. Classes no Body do Circle
         if (document.body && document.body.classList.contains('is-signed-in')) {
             return true;
         }
 
-        // 6. PunditUserContext no LocalStorage
         const pundit = localStorage.getItem('V1-PunditUserContext');
         if (pundit && pundit.includes('"current_community"')) {
             if (document.querySelector('a[href*="/u/"], [data-testid*="user-menu"], .user-menu, .avatar')) {
@@ -465,12 +459,10 @@ window.PetMasterSystem = {
             }
         }
 
-        // 7. Se o body contem is-signed-out E NAO TEM spaces no localStorage -> Deslogado
         if (document.body && document.body.classList.contains('is-signed-out') && (!spaces || spaces.length < 5)) {
             return false;
         }
 
-        // 8. Se estiver em qualquer página da comunidade (comunidade.aprenderecuidar.com.br) -> Padrão Membro Logado
         return true;
     },
 
@@ -518,11 +510,19 @@ window.PetMasterSystem = {
         const cached = this.safeStorage('get', this.constants.LS_USER_EMAIL);
         if (cached && cached !== "null" && cached !== "undefined") return cached;
 
-        return "aluna@comunidade.aprenderecuidar.com.br";
+        return null;
+    },
+
+    getUserOnboardingKey: function(email) {
+        const cleanEmail = email ? String(email).toLowerCase().trim().replace(/[^a-z0-9]/g, '_') : 'default';
+        return 'pet_onboarding_v1_seen_' + cleanEmail;
     },
 
     forceStartOnboarding: function() {
         console.log("🐾 PetMasterSystem: Forçando início do Onboarding pelo Widget/Comando!");
+        if (this.emailAluna) {
+            this.safeStorage('remove', this.getUserOnboardingKey(this.emailAluna));
+        }
         this.safeStorage('remove', this.constants.LS_ONBOARDING_DONE);
         this.censoEmAndamento = true;
         this.fazerCaminhadaVertical();
@@ -534,7 +534,7 @@ window.PetMasterSystem = {
     },
 
     init: function() {
-        // 1. REGRA 1: SOMENTE QUEM ESTIVER LOGADO!
+        // 1. Somente se o membro estiver logado
         if (!this.isMembroLogado()) {
             document.getElementById(this.constants.WIDGET_ID)?.remove();
             document.getElementById(this.constants.FULLBODY_ID)?.remove();
@@ -543,21 +543,26 @@ window.PetMasterSystem = {
             return;
         }
 
+        // 2. Identifica o e-mail da aluna logada no Circle
         this.emailAluna = this.capturarEmailRobusto();
 
-        // 2. Sempre exibe o Widget Flutuante no canto para membros logados
+        // 3. Exibe o Widget Flutuante no canto
         this.iniciarWidget();
         
-        // 3. REGRA 2: APARECE UMA ÚNICA VEZ AUTOMATICAMENTE
+        // 4. Checagem de Onboarding VINCULADA AO E-MAIL DA ALUNA
         const urlParams = new URLSearchParams(window.location.search);
         const forceOnboarding = urlParams.get('onboarding') === 'true';
 
-        const onboardingConcluido = !forceOnboarding && this.safeStorage('get', this.constants.LS_ONBOARDING_DONE) === "true";
+        const userKey = this.getUserOnboardingKey(this.emailAluna);
+        const jaViuOnboarding = this.safeStorage('get', userKey) === "true" || this.safeStorage('get', this.constants.LS_ONBOARDING_DONE) === "true";
+        const onboardingConcluido = !forceOnboarding && jaViuOnboarding;
+
         const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
         const censoConcluido = !this.sandboxMode && this.safeStorage('get', this.constants.LS_PARTICIPADO) === "true";
 
         if (!onboardingConcluido) {
-            // PRIMEIRA VEZ DA ALUNA: Caminhada 🐾 + Tour 🚀 (Executado apenas UMA vez!)
+            // ASSIM QUE IDENTIFICAR O E-MAIL PELA PRIMEIRA VEZ: Exibe o Onboarding e a Caminhada!
+            console.log("🐾 PetMasterSystem: E-mail identificado (" + this.emailAluna + "). Iniciando Onboarding para a aluna!");
             this.censoEmAndamento = true;
             this.fazerCaminhadaVertical();
         } else if (onboardingConcluido && isSocio && !censoConcluido) {
@@ -604,7 +609,7 @@ window.PetMasterSystem = {
     },
 
     iniciarWidget: function() {
-        if (!this.emailAluna || !this.isMembroLogado()) return;
+        if (!this.isMembroLogado()) return;
         if (this.safeStorage('get', this.constants.LS_WIDGET_MINIMIZED) == null) this.safeStorage('set', this.constants.LS_WIDGET_MINIMIZED, 'false');
 
         const cS = this.safeStorage('get', this.constants.LS_USER_SALDO);
@@ -977,6 +982,10 @@ window.PetMasterSystem = {
                 this.tourCurrentStep++;
                 this.renderTourStep(this.tourCurrentStep);
             } else {
+                // GRAVA NO LOCALSTORAGE QUE ESTA ALUNA ESPECIFICA JA VIU O ONBOARDING!
+                if (this.emailAluna) {
+                    this.safeStorage('set', this.getUserOnboardingKey(this.emailAluna), "true");
+                }
                 this.safeStorage('set', this.constants.LS_ONBOARDING_DONE, "true");
                 document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
                 
