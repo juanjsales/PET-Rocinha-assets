@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V29.0: FORCE ONBOARDING GUARANTEE & UNCONDITIONAL LOADER
+   SISTEMA MASTER PRO V30.0: STRICT AUTH & SINGLE ONBOARDING SHOW + REOPEN WIDGET
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,9 +8,9 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v29")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v30")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v29";
+        style.id = "pet-master-system-styles-pro-v30";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
@@ -426,6 +426,59 @@ window.PetMasterSystem = {
         }
     ],
 
+    isMembroLogado: function() {
+        if (this.sandboxMode) return true;
+
+        // A) Se for explicitamente página publica de login/cadastro -> NÃO É MEMBRO LOGADO
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('/users/sign_in') || path.includes('/users/sign_up') || path.includes('/sign_up')) {
+            return false;
+        }
+
+        // B) Se a pagina tem classe is-signed-out no body e nenhum email/usuario no Pundit
+        if (document.body && document.body.classList.contains('is-signed-out')) {
+            const pundit = localStorage.getItem('V1-PunditUserContext');
+            if (!pundit || pundit.includes('"current_user":null')) {
+                return false;
+            }
+        }
+
+        // C) Objetos globais do Circle
+        if (window.circleUser) {
+            if (window.circleUser.signedIn === true || window.circleUser.signedIn === 'true') return true;
+            if (window.circleUser.signedIn === false || window.circleUser.signedIn === 'false') return false;
+        }
+
+        if (window.current_user?.email || window.current_community_member?.id || window.Circle?.currentUser?.id) {
+            return true;
+        }
+
+        // D) LocalStorage PunditUserContext (Usuário logado)
+        try {
+            const pundit = localStorage.getItem('V1-PunditUserContext');
+            if (pundit && pundit.includes('"current_user"') && !pundit.includes('"current_user":null')) {
+                return true;
+            }
+            const spaces = localStorage.getItem('V1-SpaceGroupsContextProvider');
+            if (spaces && spaces.includes('"id"')) {
+                return true;
+            }
+        } catch(e) {}
+
+        // E) Se document.body tem is-signed-in
+        if (document.body && document.body.classList.contains('is-signed-in')) {
+            return true;
+        }
+
+        // F) Fallback para email em cache
+        const cachedEmail = this.safeStorage('get', this.constants.LS_USER_EMAIL);
+        if (cachedEmail && cachedEmail !== "null" && cachedEmail !== "undefined" && !cachedEmail.includes('aluna@comunidade')) {
+            return true;
+        }
+
+        return false;
+    },
+
     capturarEmailRobusto: function() {
         if (this.sandboxMode) return this.sandboxEmail;
         let currentSystemEmail = null;
@@ -474,43 +527,42 @@ window.PetMasterSystem = {
     },
 
     forceStartOnboarding: function() {
-        console.log("🐾 PetMasterSystem: Forçando início do Onboarding!");
+        console.log("🐾 PetMasterSystem: Forçando início do Onboarding pelo Widget/Comando!");
         this.safeStorage('remove', this.constants.LS_ONBOARDING_DONE);
         this.censoEmAndamento = true;
         this.fazerCaminhadaVertical();
     },
 
+    reiniciarOnboarding: function() {
+        if (!this.isMembroLogado()) return;
+        this.forceStartOnboarding();
+    },
+
     init: function() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const forceOnboarding = urlParams.get('onboarding') === 'true';
-
-        // FORCE ONBOARDING MODE: Se tiver ?onboarding=true na URL, IGNORE qualquer filtro e inicie imediatamente!
-        if (forceOnboarding) {
-            console.log("🐾 PetMasterSystem: Modo Force Onboarding Ativo (?onboarding=true)");
-            this.forceStartOnboarding();
-            return;
-        }
-
-        // Se for explicitamente a página de login (/users/sign_in), não carrega
-        const path = window.location.pathname.toLowerCase();
-        if (path.includes('/users/sign_in') || path.includes('/users/sign_up') || path.includes('/sign_up')) {
+        // 1. REGRA 1: SOMENTE QUEM ESTIVER LOGADO!
+        if (!this.isMembroLogado()) {
             document.getElementById(this.constants.WIDGET_ID)?.remove();
             document.getElementById(this.constants.FULLBODY_ID)?.remove();
             document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
+            document.getElementById("circle-popup-socoeco")?.remove();
             return;
         }
 
         this.emailAluna = this.capturarEmailRobusto();
 
-        // 1. Exibe o Widget Flutuante da Mentora no canto da tela
+        // 2. Sempre exibe o Widget Flutuante no canto para membros logados
         this.iniciarWidget();
         
-        // 2. Checagem de Onboarding / Censo
-        const onboardingConcluido = this.safeStorage('get', this.constants.LS_ONBOARDING_DONE) === "true";
+        // 3. REGRA 2: APARECE UMA ÚNICA VEZ AUTOMATICAMENTE
+        const urlParams = new URLSearchParams(window.location.search);
+        const forceOnboarding = urlParams.get('onboarding') === 'true';
+
+        const onboardingConcluido = !forceOnboarding && this.safeStorage('get', this.constants.LS_ONBOARDING_DONE) === "true";
         const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
         const censoConcluido = !this.sandboxMode && this.safeStorage('get', this.constants.LS_PARTICIPADO) === "true";
 
         if (!onboardingConcluido) {
+            // PRIMEIRA VEZ DA ALUNA: Caminhada 🐾 + Tour 🚀 (Executado apenas UMA vez!)
             this.censoEmAndamento = true;
             this.fazerCaminhadaVertical();
         } else if (onboardingConcluido && isSocio && !censoConcluido) {
@@ -557,6 +609,7 @@ window.PetMasterSystem = {
     },
 
     iniciarWidget: function() {
+        if (!this.emailAluna || !this.isMembroLogado()) return;
         if (this.safeStorage('get', this.constants.LS_WIDGET_MINIMIZED) == null) this.safeStorage('set', this.constants.LS_WIDGET_MINIMIZED, 'false');
 
         const cS = this.safeStorage('get', this.constants.LS_USER_SALDO);
@@ -572,6 +625,7 @@ window.PetMasterSystem = {
     },
 
     receberDadosWidget: function(data) {
+        if (!this.isMembroLogado()) return;
         const isSocioValido = data && data.encontrado && (data.socioeconomico === true || data.socioeconomico === 'true' || data.socioeconomico === 'Sim' || data.socioeconomico === 1);
         
         if (data && data.encontrado) {
@@ -632,6 +686,7 @@ window.PetMasterSystem = {
     },
 
     renderizarWidget: function(data) {
+        if (!this.isMembroLogado()) return;
         let widget = document.getElementById(this.constants.WIDGET_ID);
         let fullbodyContainer = document.getElementById(this.constants.FULLBODY_ID);
 
@@ -750,6 +805,7 @@ window.PetMasterSystem = {
     },
 
     fazerCaminhadaVertical: function() {
+        if (!this.isMembroLogado()) return;
         const container = document.createElement('div');
         container.id = this.constants.WALK_CONTAINER_ID; container.className = 'pet-overlay-global';
         container.style.backgroundColor = 'rgba(26, 24, 80, 0.1)'; container.style.backdropFilter = 'blur(0px)';
@@ -777,6 +833,7 @@ window.PetMasterSystem = {
     },
 
     iniciarOnboardingFluido: function() {
+        if (!this.isMembroLogado()) return;
         this.tourCurrentStep = 0;
         this.renderTourStep(0);
     },
@@ -830,6 +887,7 @@ window.PetMasterSystem = {
     },
 
     renderTourStep: function(stepIndex) {
+        if (!this.isMembroLogado()) return;
         let overlay = document.getElementById(this.constants.TOUR_OVERLAY_ID);
         if (!overlay) {
             overlay = document.createElement('div');
@@ -937,13 +995,8 @@ window.PetMasterSystem = {
         });
     },
 
-    reiniciarOnboarding: function() {
-        this.safeStorage('remove', this.constants.LS_ONBOARDING_DONE);
-        this.censoEmAndamento = true;
-        this.fazerCaminhadaVertical();
-    },
-
     iniciarCensoFormulario: function() {
+        if (!this.isMembroLogado()) return;
         const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
         if (!isSocio && !this.sandboxMode) {
             this.exibirTravaSocioeconomicoPopup();
@@ -1178,6 +1231,7 @@ window.PetMasterSystem = {
     },
 
     exibirTravaSocioeconomicoPopup: function() {
+        if (!this.isMembroLogado()) return;
         if (document.getElementById("circle-popup-socoeco")) return;
         if (sessionStorage.getItem('pet_popup_ignorado_sessao') === 'true') return;
 
