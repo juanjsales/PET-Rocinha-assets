@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V36.0: PRECISE SPOTLIGHT TARGETING & TEXT FORMATTING FIX
+   SISTEMA MASTER PRO V37.0: FEED REDIRECT, WIDGET PRESENTATION & BADGE LOGIC
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -8,66 +8,24 @@
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
-        if (document.getElementById("pet-master-system-styles-pro-v36")) return;
+        if (document.getElementById("pet-master-system-styles-pro-v37")) return;
         var style = document.createElement('style');
-        style.id = "pet-master-system-styles-pro-v36";
+        style.id = "pet-master-system-styles-pro-v37";
         style.innerHTML = `
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
             
             body.modal-open-circle { overflow: hidden !important; }
             
             /* -------------------------------------
-               1. MENTORA CORPO INTEIRO & WIDGET FLUTUANTE
+               1. WIDGET FLUTUANTE & BALÃO DE APRESENTAÇÃO
                ------------------------------------- */
             #pet-floating-widget {
                 position: fixed !important; z-index: 2147483640 !important; touch-action: none; user-select: none;
                 display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
             }
 
-            #pet-widget-fullbody-container {
-                position: fixed !important; bottom: 20px; right: 260px; z-index: 2147483639 !important;
-                display: flex; flex-direction: column; align-items: flex-end; pointer-events: none;
-                transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            }
-
-            @keyframes dandaraStandFloat {
-                0%, 100% { transform: translateY(0px) rotate(0deg); }
-                50% { transform: translateY(-7px) rotate(1.5deg); }
-            }
-
-            @keyframes dandaraTalkBounce {
-                0%, 100% { transform: translateY(0px) scale(1); }
-                50% { transform: translateY(-4px) scale(1.02); }
-            }
-
-            .pet-fullbody-transparent-wrap {
-                position: relative; width: 140px; height: 260px; display: flex; align-items: flex-end;
-                justify-content: center; pointer-events: auto; cursor: pointer;
-                filter: drop-shadow(0 15px 25px rgba(0,0,0,0.55));
-                animation: dandaraStandFloat 4s ease-in-out infinite; transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            }
-            .pet-fullbody-transparent-wrap:hover { transform: scale(1.08) translateY(-4px); }
-
-            .pet-fullbody-img-transparent {
-                width: 100%; height: 100%; object-fit: contain; object-position: bottom center;
-                background: transparent !important;
-            }
-
-            .pet-dandara-speaking {
-                animation: dandaraTalkBounce 0.4s ease-in-out infinite alternate !important;
-            }
-
-            .pet-dandara-widget-speech {
-                background: linear-gradient(135deg, #1a1850 0%, #0f172a 100%); color: white;
-                padding: 10px 16px; border-radius: 18px; font-size: 13px; font-weight: 800;
-                border: 2px solid #e08b26; box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-                margin-bottom: 8px; pointer-events: auto; cursor: pointer; max-width: 220px; text-align: center;
-                animation: modalBounce 0.5s ease-out; line-height: 1.4; position: relative;
-            }
-            .pet-dandara-widget-speech::after {
-                content: ''; position: absolute; bottom: -8px; right: 40px; width: 0; height: 0;
-                border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid #e08b26;
-            }
+            /* Personagem lateral removida a pedido do usuário */
+            #pet-widget-fullbody-container { display: none !important; }
 
             .pet-widget-container {
                 display: flex !important; align-items: center !important; background: rgba(255, 255, 255, 0.96) !important;
@@ -75,6 +33,7 @@
                 box-shadow: 0 12px 35px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(224, 139, 38, 0.15) !important;
                 border: 2px solid #e08b26 !important;
                 transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+                position: relative;
             }
             .pet-widget-container:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(224, 139, 38, 0.35) !important; }
             .pet-drag-handle {
@@ -84,6 +43,7 @@
             .pet-drag-handle:active { cursor: grabbing !important; }
             .pet-widget-main-content { display: flex !important; align-items: center !important; gap: 10px !important; cursor: pointer !important; padding-right: 8px; }
             .pet-widget-badge { width: 44px !important; height: 44px !important; border-radius: 50% !important; pointer-events: none; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+            .pet-widget-no-badge { width: 44px !important; height: 44px !important; border-radius: 50% !important; background: #fff9f2; border: 2px solid #e08b26; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
             .pet-widget-info { display: flex !important; flex-direction: column !important; }
             .pet-widget-label { font-size: 9px !important; color: #94a3b8 !important; text-transform: uppercase !important; font-weight: 800 !important; line-height: 1 !important; letter-spacing: 0.5px; }
             .pet-widget-value { font-size: 18px !important; color: #e08b26 !important; font-weight: 900 !important; line-height: 1.2 !important; white-space: nowrap; }
@@ -99,6 +59,19 @@
                 width: 54px !important; height: 54px !important; background: linear-gradient(135deg, #e08b26 0%, #c7761b 100%) !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; box-shadow: 0 8px 24px rgba(224, 139, 38, 0.45) !important; color: white !important; font-size: 25px !important; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); border: 2px solid white;
             }
             .pet-minimized-icon:hover { transform: scale(1.14) rotate(8deg); }
+
+            /* Balão explicativo do Widget */
+            .pet-widget-intro-bubble {
+                background: linear-gradient(135deg, #1a1850 0%, #0f172a 100%); color: white;
+                padding: 10px 14px; border-radius: 16px; font-size: 12px; font-weight: 700;
+                border: 2px solid #e08b26; box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+                max-width: 240px; text-align: center; line-height: 1.4; position: relative;
+                animation: modalBounce 0.5s ease-out; margin-bottom: 6px;
+            }
+            .pet-widget-intro-bubble::after {
+                content: ''; position: absolute; bottom: -8px; right: 24px; width: 0; height: 0;
+                border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 8px solid #e08b26;
+            }
 
             /* -------------------------------------
                2. ONBOARDING TOUR TRANSPARENTE DESKTOP
@@ -272,14 +245,6 @@
                     bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
                     right: 16px !important;
                 }
-                #pet-widget-fullbody-container {
-                    right: 10px !important;
-                    bottom: 75px !important;
-                }
-                .pet-fullbody-transparent-wrap {
-                    width: 100px !important;
-                    height: 180px !important;
-                }
                 .btn-pet { padding: 12px 14px !important; font-size: 13.5px !important; font-weight: 800 !important; }
             }
         `;
@@ -409,11 +374,10 @@ window.PetMasterSystem = {
         },
         {
             title: "💳 Seu Saldo de Arrasas & Widget Flutuante",
-            desc: "O seu <b>Widget Flutuante de Arrasas</b> e o <b>Censo Pet</b> serão ativados assim que você responder o formulário socioeconômico!",
-            breadcrumb: "📍 Widget Flutuante (Liberado Após Socioeconômico)",
+            desc: "Este é o seu <b>Widget Flutuante</b>! Nele você acompanha o seu <b>Saldo de Arrasas</b>, suas <b>Medalhas Conquistadas</b> (liberadas após o socioeconômico) e pode clicar no botão 🚀 a qualquer momento para rever este guia!",
+            breadcrumb: "📍 Widget Flutuante de Arrasas & Conquistas",
             selectors: [
-                "#pet-floating-widget",
-                "#pet-widget-fullbody-container"
+                "#pet-floating-widget"
             ],
             keywords: ["widget", "arrasas"],
             pose: "comemorando"
@@ -613,11 +577,25 @@ window.PetMasterSystem = {
         };
     },
 
+    garantirPaginaFeed: function() {
+        // Redireciona/garante que o Onboarding rode na rota /feed para melhor sincronização
+        const currentPath = window.location.pathname.toLowerCase();
+        if (currentPath !== '/feed' && currentPath !== '/feed/' && currentPath !== '/') {
+            console.log("🐾 PetMasterSystem: Redirecionando para o /feed para sincronização do Onboarding!");
+            window.location.href = '/feed?onboarding=true';
+            return false;
+        }
+        return true;
+    },
+
     forceStartOnboarding: function() {
         console.log("🐾 PetMasterSystem: Forçando início do Onboarding pelo Widget/Comando!");
         const userKey = this.getUserOnboardingKey(this.emailAluna);
         this.safeStorage('remove', userKey);
         this.safeStorage('remove', this.constants.LS_ONBOARDING_DONE);
+
+        if (!this.garantirPaginaFeed()) return;
+
         this.censoEmAndamento = true;
         this.fazerCaminhadaVertical();
     },
@@ -640,6 +618,8 @@ window.PetMasterSystem = {
         const jaViuOnboarding = this.safeStorage('get', userKey) === "true";
 
         if (!jaViuOnboarding) {
+            if (!this.garantirPaginaFeed()) return;
+
             console.log("🐾 PetMasterSystem: Aluna AINDA NÃO VIU o Onboarding (Chave: " + userKey + "). MOSTRANDO AGORA!");
             this.censoEmAndamento = true;
             this.fazerCaminhadaVertical();
@@ -744,6 +724,13 @@ window.PetMasterSystem = {
     },
 
     _getBadgeHtml: function(badgeName) {
+        // REGRA DE MEDALHA: Só exibe medalha se tiver preenchido o formulário socioeconômico
+        const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
+        if (!isSocio && !this.sandboxMode) {
+            // Se NÃO preencheu o socioeconômico -> NÃO exibe medalha (mostra o ícone neutro 🐾)
+            return `<div class="pet-widget-no-badge" title="Responda o Socioeconômico para liberar sua Medalha!">🐾</div>`;
+        }
+
         const getBadgeImg = (b) => {
             if (!b) return "";
             const s = String(b).toLowerCase();
@@ -774,19 +761,36 @@ window.PetMasterSystem = {
         window.requestAnimationFrame(step);
     },
 
-    ativarFalaDandara: function(parentWrap, duracaoMs) {
-        if (!parentWrap) return;
-        parentWrap.classList.add('pet-dandara-speaking');
-        if (this.talkingTimer) clearTimeout(this.talkingTimer);
-        this.talkingTimer = setTimeout(() => {
-            parentWrap.classList.remove('pet-dandara-speaking');
-        }, duracaoMs || 3500);
+    exibirApresentacaoWidgetBubble: function() {
+        const widget = document.getElementById(this.constants.WIDGET_ID);
+        if (!widget) return;
+
+        let bubble = document.getElementById("dandara-widget-intro-bubble");
+        if (!bubble) {
+            bubble = document.createElement("div");
+            bubble.id = "dandara-widget-intro-bubble";
+            bubble.className = "pet-widget-intro-bubble";
+            widget.insertBefore(bubble, widget.firstChild);
+        }
+        
+        const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
+        const msg = isSocio 
+            ? "Oi, mulher! Este é o seu Widget de Arrasas! 🐾 Aqui você acompanha seu saldo, medalhas e clica no 🚀 para rever o tour!"
+            : "Oi, mulher! Este é o seu Widget Flutuante! 🐾 Preencha o formulário socioeconômico para liberar sua Medalha e o Censo Pet!";
+
+        bubble.innerHTML = `<span>"${msg}"</span>`;
+        
+        setTimeout(() => {
+            if (bubble) bubble.style.display = "none";
+        }, 6000);
     },
 
     renderizarWidget: function(data) {
         if (!this.isMembroLogado()) return;
         let widget = document.getElementById(this.constants.WIDGET_ID);
-        let fullbodyContainer = document.getElementById(this.constants.FULLBODY_ID);
+
+        // Remove a personagem de corpo inteiro ao lado do widget completamente
+        document.getElementById(this.constants.FULLBODY_ID)?.remove();
 
         const isMinimized = this.safeStorage('get', this.constants.LS_WIDGET_MINIMIZED) === 'true';
         const valorNovo = data && data.arrasas !== undefined ? parseInt(data.arrasas || 0) : 0;
@@ -801,32 +805,6 @@ window.PetMasterSystem = {
             setTimeout(() => { if (widget) widget.classList.remove('pet-widget-first-show'); }, 800);
         }
         widget.style.display = 'flex';
-
-        if (!fullbodyContainer) {
-            fullbodyContainer = document.createElement('div');
-            fullbodyContainer.id = this.constants.FULLBODY_ID;
-            fullbodyContainer.innerHTML = `
-                <div class="pet-dandara-widget-speech" id="dandara-widget-talking-bubble">
-                    <span>Oi, mulher! Aqui tá o seu Saldo de Arrasas! 🐾</span>
-                </div>
-                <div class="pet-fullbody-transparent-wrap" id="dandara-widget-wrap" title="Clique para ouvir a Mentora!">
-                    <img src="${this.poses.comemorando}" id="dandara-widget-img" class="pet-fullbody-img-transparent" alt="Mentora">
-                </div>
-            `;
-            document.body.appendChild(fullbodyContainer);
-
-            const wrap = document.getElementById("dandara-widget-wrap");
-            document.getElementById("dandara-widget-wrap")?.addEventListener("click", () => {
-                const bubble = document.getElementById("dandara-widget-talking-bubble");
-                if (bubble) {
-                    const phrase = this.guidePhrases[this.phraseIndex % this.guidePhrases.length];
-                    this.phraseIndex++;
-                    bubble.innerHTML = `<span>"${phrase}"</span>`;
-                    this.ativarFalaDandara(wrap, 3500);
-                }
-            });
-        }
-        fullbodyContainer.style.display = isMinimized ? 'none' : 'flex';
 
         if (isMinimized) {
             widget.innerHTML = `<button class="pet-minimized-icon" id="pet-btn-maximize" aria-label="Expandir">🐾</button>`;
@@ -854,7 +832,9 @@ window.PetMasterSystem = {
         document.getElementById('pet-btn-minimize')?.addEventListener('click', (e) => this.togglePetWidget(e));
         document.getElementById('pet-btn-maximize')?.addEventListener('click', (e) => this.togglePetWidget(e));
         document.getElementById('pet-btn-onboarding-reopen')?.addEventListener('click', (e) => { e.stopPropagation(); this.reiniciarOnboarding(); });
-        document.getElementById('pet-main-content')?.addEventListener('click', () => window.open("/dash_aluna", '_self'));
+        document.getElementById('pet-main-content')?.addEventListener('click', () => {
+            this.exibirApresentacaoWidgetBubble();
+        });
     },
 
     togglePetWidget: function(e) {
@@ -887,13 +867,6 @@ window.PetMasterSystem = {
             pos1 = pos3 - cx; pos2 = pos4 - cy; pos3 = cx; pos4 = cy;
             elmnt.style.top = Math.max(0, Math.min(elmnt.offsetTop - pos2, window.innerHeight - elmnt.offsetHeight)) + "px";
             elmnt.style.left = Math.max(0, Math.min(elmnt.offsetLeft - pos1, window.innerWidth - elmnt.offsetWidth)) + "px";
-
-            const fullbody = document.getElementById(self.constants.FULLBODY_ID);
-            if (fullbody && window.innerWidth > 768) {
-                fullbody.style.top = Math.max(0, elmnt.offsetTop - 180) + "px";
-                fullbody.style.left = Math.max(0, elmnt.offsetLeft - 150) + "px";
-                fullbody.style.bottom = 'auto'; fullbody.style.right = 'auto';
-            }
         }
         function closeDragElement() {
             document.removeEventListener('mouseup', closeDragElement); document.removeEventListener('mousemove', elementDrag);
@@ -939,7 +912,6 @@ window.PetMasterSystem = {
     findTargetElement: function(locConfig) {
         if (!locConfig) return null;
 
-        // 1. Tentar seletores CSS explícitos primeiro
         if (locConfig.selectors && locConfig.selectors.length > 0) {
             for (const sel of locConfig.selectors) {
                 try {
@@ -953,7 +925,6 @@ window.PetMasterSystem = {
             }
         }
 
-        // 2. Buscador por texto exato nos links do menu (prioriza dentro do aside / sidebar)
         if (locConfig.keywords && locConfig.keywords.length > 0) {
             const sidebarLinks = document.querySelectorAll('aside a, nav a, aside button, nav button, header a');
             for (const el of sidebarLinks) {
