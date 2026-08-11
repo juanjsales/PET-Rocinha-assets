@@ -978,6 +978,20 @@ var PetMasterSystem = {
         });
     },
 
+    fecharOnboardingCompleto: function() {
+        document.getElementById(this.constants.WALK_CONTAINER_ID)?.remove();
+        document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
+        document.getElementById(this.constants.SPOTLIGHT_ID)?.remove();
+        document.body.classList.remove("modal-open-circle");
+
+        const userKey = this.getUserOnboardingKey(this.emailAluna);
+        this.safeStorage('set', userKey, "true");
+        this.safeStorage('set', this.constants.LS_ONBOARDING_DONE, "true");
+        this.censoEmAndamento = false;
+
+        console.log("🛑 PetMasterSystem: Onboarding fechado pelo usuário.");
+    },
+
     fazerCaminhadaVertical: function() {
         const existingWalk = document.getElementById(this.constants.WALK_CONTAINER_ID);
         if (existingWalk) existingWalk.remove();
@@ -987,6 +1001,25 @@ var PetMasterSystem = {
         container.className = 'pet-overlay-global';
         container.style.backgroundColor = 'rgba(26, 24, 80, 0.15)'; 
         container.style.backdropFilter = 'blur(0px)';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'close-tour-btn';
+        closeBtn.id = 'close-paw-walk-btn';
+        closeBtn.title = 'Fechar Onboarding';
+        closeBtn.innerHTML = '✕';
+        closeBtn.style.position = 'fixed';
+        closeBtn.style.top = '24px';
+        closeBtn.style.right = '24px';
+        closeBtn.style.zIndex = '2147483648';
+        closeBtn.style.background = '#ffffff';
+        closeBtn.style.color = '#64748b';
+        closeBtn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.fecharOnboardingCompleto();
+        });
+        container.appendChild(closeBtn);
+
         document.body.appendChild(container);
         document.body.classList.add("modal-open-circle");
 
@@ -1007,11 +1040,16 @@ var PetMasterSystem = {
         });
 
         setTimeout(() => {
+            if (!document.getElementById(this.constants.WALK_CONTAINER_ID)) return;
             container.style.backgroundColor = 'rgba(15, 23, 42, 0.85)'; 
             container.style.backdropFilter = 'blur(8px)';
             document.querySelectorAll('.paw-step-container').forEach(p => p.style.opacity = '0');
-            setTimeout(() => container.remove(), 400);
-            this.iniciarTourGuiado();
+            setTimeout(() => {
+                if (document.getElementById(this.constants.WALK_CONTAINER_ID)) {
+                    container.remove();
+                    this.iniciarTourGuiado();
+                }
+            }, 400);
         }, passos.length * 250 + 350);
     },
 
@@ -1128,7 +1166,7 @@ var PetMasterSystem = {
 
         tourWrapper.innerHTML = `
             <div class="pet-tour-card">
-                <button class="close-tour-btn" id="close-pet-tour" title="Pular Onboarding">✕</button>
+                <button class="close-tour-btn" id="close-pet-tour" title="Fechar Onboarding">✕</button>
                 <div class="pet-guide-header">
                     <div class="pet-guide-meta">
                         <span class="pet-guide-name">${this.guideName}</span>
@@ -1142,7 +1180,8 @@ var PetMasterSystem = {
                 ${whatsappBtnHtml}
                 <div class="pet-tour-nav" style="margin-top: 18px;">
                     <span class="pet-tour-step-count">Passo ${stepIndex + 1} de ${this.tourLocations.length}</span>
-                    <div style="display: flex; gap: 10px;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button type="button" class="btn-pet btn-pet-prev" id="pet-tour-skip-btn" style="padding: 10px 14px; font-size: 13px; background: #f1f5f9; color: #64748b;" title="Fechar Onboarding">Fechar ✕</button>
                         ${stepIndex > 0 ? `<button type="button" class="btn-pet btn-pet-prev" id="pet-tour-prev-btn" style="padding: 10px 16px; font-size: 13px;">⬅️ Anterior</button>` : ''}
                         <button type="button" class="btn-pet btn-pet-next" id="pet-tour-next-btn" style="padding: 10px 18px; font-size: 13.5px;">
                             ${isLastStep ? 'Concluir Tour 🐾' : 'Próximo Passo ➡️'}
@@ -1163,7 +1202,8 @@ var PetMasterSystem = {
             this.falarComDandara(document.getElementById('dandara-tour-character'));
         });
 
-        document.getElementById('close-pet-tour')?.addEventListener('click', () => this.concluirTour());
+        document.getElementById('close-pet-tour')?.addEventListener('click', () => this.fecharOnboardingCompleto());
+        document.getElementById('pet-tour-skip-btn')?.addEventListener('click', () => this.fecharOnboardingCompleto());
         document.getElementById('pet-tour-prev-btn')?.addEventListener('click', () => {
             if (this.tourCurrentStep > 0) this.mostrarPassoTour(this.tourCurrentStep - 1);
         });
