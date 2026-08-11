@@ -104,11 +104,14 @@
             }
 
             .close-tour-btn {
-                position: absolute; top: 16px; right: 16px; background: #f1f5f9; border: none; color: #64748b;
-                cursor: pointer; width: 32px; height: 32px; border-radius: 50%; transition: all 0.2s ease;
-                display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; z-index: 10;
+                position: absolute !important; top: 12px !important; right: 12px !important;
+                background: #fee2e2 !important; border: 2px solid #ef4444 !important; color: #991b1b !important;
+                cursor: pointer !important; width: 36px !important; height: 36px !important; border-radius: 50% !important;
+                transition: all 0.2s ease !important; display: flex !important; align-items: center !important; justify-content: center !important;
+                font-size: 18px !important; font-weight: 900 !important; z-index: 2147483647 !important; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;
+                opacity: 1 !important; visibility: visible !important; pointer-events: auto !important;
             }
-            .close-tour-btn:hover { background: #e2e8f0; color: #0f172a; transform: scale(1.1) rotate(90deg); }
+            .close-tour-btn:hover { background: #ef4444 !important; color: #ffffff !important; transform: scale(1.12) rotate(90deg) !important; }
 
             .pet-tour-dandara-side {
                 position: relative; width: 150px; height: 280px; display: flex;
@@ -1006,14 +1009,8 @@ var PetMasterSystem = {
         closeBtn.className = 'close-tour-btn';
         closeBtn.id = 'close-paw-walk-btn';
         closeBtn.title = 'Fechar Onboarding';
-        closeBtn.innerHTML = '✕';
-        closeBtn.style.position = 'fixed';
-        closeBtn.style.top = '24px';
-        closeBtn.style.right = '24px';
-        closeBtn.style.zIndex = '2147483648';
-        closeBtn.style.background = '#ffffff';
-        closeBtn.style.color = '#64748b';
-        closeBtn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
+        closeBtn.innerHTML = 'Fechar Onboarding ✕';
+        closeBtn.style.cssText = 'position: fixed !important; top: 20px !important; right: 20px !important; z-index: 2147483648 !important; background: #fee2e2 !important; color: #991b1b !important; border: 2px solid #ef4444 !important; padding: 12px 22px !important; border-radius: 30px !important; font-weight: 900 !important; font-size: 15px !important; cursor: pointer !important; box-shadow: 0 8px 25px rgba(239,68,68,0.4) !important; font-family: "Plus Jakarta Sans", sans-serif !important; display: flex !important; align-items: center !important; gap: 8px !important; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important;';
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             this.fecharOnboardingCompleto();
@@ -1165,9 +1162,9 @@ var PetMasterSystem = {
         ` : '';
 
         tourWrapper.innerHTML = `
-            <div class="pet-tour-card">
-                <button class="close-tour-btn" id="close-pet-tour" title="Fechar Onboarding">✕</button>
-                <div class="pet-guide-header">
+            <div class="pet-tour-card" style="position: relative !important;">
+                <button class="close-tour-btn" id="close-pet-tour" title="Fechar Onboarding" style="position: absolute !important; top: 12px !important; right: 12px !important; background: #fee2e2 !important; border: 2px solid #ef4444 !important; color: #991b1b !important; cursor: pointer !important; width: 36px !important; height: 36px !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 18px !important; font-weight: 900 !important; z-index: 2147483647 !important; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35) !important;">✕</button>
+                <div class="pet-guide-header" style="max-width: calc(100% - 48px) !important;">
                     <div class="pet-guide-meta">
                         <span class="pet-guide-name">${this.guideName}</span>
                         <span class="pet-guide-role">${this.guideRole}</span>
@@ -1178,12 +1175,12 @@ var PetMasterSystem = {
                 <h3 class="pet-tour-title">${loc.title}</h3>
                 <div class="pet-tour-desc">${loc.desc}</div>
                 ${whatsappBtnHtml}
-                <div class="pet-tour-nav" style="margin-top: 18px;">
-                    <span class="pet-tour-step-count">Passo ${stepIndex + 1} de ${this.tourLocations.length}</span>
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <button type="button" class="btn-pet btn-pet-prev" id="pet-tour-skip-btn" style="padding: 10px 14px; font-size: 13px; background: #f1f5f9; color: #64748b;" title="Fechar Onboarding">Fechar ✕</button>
-                        ${stepIndex > 0 ? `<button type="button" class="btn-pet btn-pet-prev" id="pet-tour-prev-btn" style="padding: 10px 16px; font-size: 13px;">⬅️ Anterior</button>` : ''}
-                        <button type="button" class="btn-pet btn-pet-next" id="pet-tour-next-btn" style="padding: 10px 18px; font-size: 13.5px;">
+                <div class="pet-tour-nav" style="margin-top: 18px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 10px !important;">
+                    <span class="pet-tour-step-count" style="font-size: 13px !important; font-weight: 800 !important; color: #94a3b8 !important;">Passo ${stepIndex + 1} de ${this.tourLocations.length}</span>
+                    <div style="display: flex !important; gap: 8px !important; align-items: center !important;">
+                        <button type="button" class="btn-pet" id="pet-tour-skip-btn" style="padding: 10px 14px !important; font-size: 13px !important; background: #fee2e2 !important; color: #991b1b !important; border: 1.5px solid #ef4444 !important; border-radius: 14px !important; font-weight: 800 !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; justify-content: center !important;" title="Fechar Onboarding">Fechar ✕</button>
+                        ${stepIndex > 0 ? `<button type="button" class="btn-pet btn-pet-prev" id="pet-tour-prev-btn" style="padding: 10px 14px !important; font-size: 13px !important;">⬅️ Anterior</button>` : ''}
+                        <button type="button" class="btn-pet btn-pet-next" id="pet-tour-next-btn" style="padding: 10px 18px !important; font-size: 13.5px !important;">
                             ${isLastStep ? 'Concluir Tour 🐾' : 'Próximo Passo ➡️'}
                         </button>
                     </div>
@@ -1273,7 +1270,8 @@ var PetMasterSystem = {
     mostrarIntro: function(container) {
         const introHtml = `
             <div class="pet-overlay-global" id="pet-intro-overlay" style="background: rgba(26, 24, 80, 0.75); backdrop-filter: blur(8px);">
-                <div class="pet-form-card" id="${this.constants.INTRO_CARD_ID}" role="dialog" aria-modal="true" aria-labelledby="intro-pet-title">
+                <div class="pet-form-card" id="${this.constants.INTRO_CARD_ID}" role="dialog" aria-modal="true" aria-labelledby="intro-pet-title" style="position: relative !important;">
+                    <button id="close-intro-top-btn" aria-label="Dispensar pesquisa" title="Fechar Onboarding" style="position: absolute !important; top: 16px !important; right: 16px !important; background: #fee2e2 !important; border: 1.5px solid #ef4444 !important; color: #991b1b !important; cursor: pointer !important; width: 36px !important; height: 36px !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; font-size: 18px !important; font-weight: 900 !important; z-index: 10 !important; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;">✕</button>
                     <div style="padding: 40px 30px; text-align: center;">
                         <div style="font-size: 60px; margin-bottom: 10px;" aria-hidden="true">🏡</div>
                         <h2 id="intro-pet-title" style="color:#1a1850; font-weight: 900; margin: 0 0 15px 0;">Olá, Aluna! 🐾</h2>
@@ -1298,11 +1296,14 @@ var PetMasterSystem = {
             this.iniciarCensoFormulario();
         });
 
-        document.getElementById("close-intro-pet")?.addEventListener("click", () => {
+        const fecharIntroHandler = () => {
             document.getElementById("pet-intro-overlay")?.remove();
             this.safeStorage('set', this.constants.LS_PARTICIPADO, "true");
             this.fecharCenso();
-        });
+        };
+
+        document.getElementById("close-intro-pet")?.addEventListener("click", fecharIntroHandler);
+        document.getElementById("close-intro-top-btn")?.addEventListener("click", fecharIntroHandler);
     },
 
     iniciarCensoFormulario: function() {
