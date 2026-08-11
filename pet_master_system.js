@@ -1181,7 +1181,7 @@ var PetMasterSystem = {
                         <button type="button" class="btn-pet" id="pet-tour-skip-btn" style="padding: 10px 14px !important; font-size: 13px !important; background: #fee2e2 !important; color: #991b1b !important; border: 1.5px solid #ef4444 !important; border-radius: 14px !important; font-weight: 800 !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; justify-content: center !important;" title="Fechar Onboarding">Fechar ✕</button>
                         ${stepIndex > 0 ? `<button type="button" class="btn-pet btn-pet-prev" id="pet-tour-prev-btn" style="padding: 10px 14px !important; font-size: 13px !important;">⬅️ Anterior</button>` : ''}
                         <button type="button" class="btn-pet btn-pet-next" id="pet-tour-next-btn" style="padding: 10px 18px !important; font-size: 13.5px !important;">
-                            ${isLastStep ? 'Concluir Tour 🐾' : 'Próximo Passo ➡️'}
+                            ${isLastStep ? 'Concluir Tour 🐾' : 'Próximo Local ➡️'}
                         </button>
                     </div>
                 </div>
