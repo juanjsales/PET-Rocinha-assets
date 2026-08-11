@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V45.0: DOM EXACT SELECTORS FOR STEP 2 & STEP 3
+   SISTEMA MASTER PRO V45.1: DOM EXACT SELECTORS FOR STEP 2 & STEP 3
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
@@ -17,9 +17,7 @@
             html, body { max-width: 100vw; overflow-x: hidden; }
             body.modal-open-circle { overflow: hidden !important; }
             
-            /* -------------------------------------
-               1. WIDGET FLUTUANTE & BALÃO DE APRESENTAÇÃO
-               ------------------------------------- */
+            /* 1. WIDGET FLUTUANTE & BALÃO DE APRESENTAÇÃO */
             #pet-floating-widget {
                 position: fixed !important; z-index: 2147483640 !important; touch-action: none; user-select: none;
                 display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
@@ -83,9 +81,7 @@
                 box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4); margin-bottom: 4px; display: inline-block;
             }
 
-            /* -------------------------------------
-               2. ONBOARDING TOUR TRANSPARENTE DESKTOP
-               ------------------------------------- */
+            /* 2. ONBOARDING TOUR TRANSPARENTE DESKTOP */
             .pet-overlay-global { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2147483647 !important; display: flex; align-items: center; justify-content: center; font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; transition: background-color 0.5s ease; overflow: hidden; }
             
             .pet-spotlight-ring {
@@ -106,6 +102,13 @@
                 box-shadow: 0 25px 60px rgba(15, 23, 42, 0.55); border: 2px solid #e08b26;
                 word-wrap: break-word; overflow-wrap: break-word; position: relative;
             }
+
+            .close-tour-btn {
+                position: absolute; top: 16px; right: 16px; background: #f1f5f9; border: none; color: #64748b;
+                cursor: pointer; width: 32px; height: 32px; border-radius: 50%; transition: all 0.2s ease;
+                display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; z-index: 10;
+            }
+            .close-tour-btn:hover { background: #e2e8f0; color: #0f172a; transform: scale(1.1) rotate(90deg); }
 
             .pet-tour-dandara-side {
                 position: relative; width: 150px; height: 280px; display: flex;
@@ -128,6 +131,7 @@
             .pet-guide-header {
                 display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
                 background: #fff9f2; padding: 8px 14px; border-radius: 18px; border: 1px solid #fbd38d;
+                max-width: calc(100% - 40px);
             }
             .pet-guide-meta { display: flex; flex-direction: column; }
             .pet-guide-name { font-size: 15px; font-weight: 900; color: #1a1850; line-height: 1.2; }
@@ -207,9 +211,7 @@
             .btn-socio-action:hover { background: #c7761b; transform: scale(1.02); }
             .btn-close-final { background: none; border: none; color: #64748b; text-decoration: underline; margin-top: 18px; cursor: pointer; font-size: 14px; }
 
-            /* -------------------------------------
-               3. ADAPTAÇÃO MOBILE ULTRA RESPONSIVA
-               ------------------------------------- */
+            /* 3. ADAPTAÇÃO MOBILE ULTRA RESPONSIVA */
             @media (max-width: 768px) {
                 .pet-tour-wrapper {
                     position: fixed !important;
@@ -300,7 +302,6 @@ var PetMasterSystem = {
     sandboxMode: false, 
     sandboxEmail: "aluna_sandbox@aprenderecuidar.com.br",
 
-    /* SUÍTE DE CONTROLE DE SANDBOX / TESTES INTEGRADA */
     enableSandbox: function(customEmail) {
         this.sandboxMode = true;
         if (customEmail) this.sandboxEmail = customEmail;
@@ -360,7 +361,6 @@ var PetMasterSystem = {
     formElements: {},
     memoryStorage: {},
 
-    /* MÉTODOS DE ANIMAÇÃO DA MENTORA GUIA */
     ativarFalaDandara: function(parentWrap, duracaoMs) {
         if (!parentWrap) return;
         try {
@@ -387,7 +387,6 @@ var PetMasterSystem = {
         } catch(e) {}
     },
 
-    /* FLUXO EM 4 PASSOS STREAMLINED COM SELETORES DE EXATA PRECISÃO DO CIRCLE.SO */
     tourLocations: [
         {
             title: "🚀 Conheça seu Menu Lateral",
@@ -982,7 +981,6 @@ var PetMasterSystem = {
     findTargetElement: function(locConfig) {
         if (!locConfig) return null;
 
-        // VERIFICAÇÃO DE EXATA PRECISÃO PARA O PASSO 2 (HEADER NAVIGATION BAR)
         if (locConfig.breadcrumb && locConfig.breadcrumb.includes("Passo 2")) {
             const navBar = document.querySelector(".header-navigation-bar, [class*='header-navigation-bar'], #header-navigation-bar");
             if (navBar && navBar.offsetWidth > 0 && navBar.offsetHeight > 0) {
@@ -1000,7 +998,6 @@ var PetMasterSystem = {
             }
         }
 
-        // VERIFICAÇÃO DE EXATA PRECISÃO PARA O PASSO 3 (CRIAR UMA PUBLICAÇÃO / + BUTTON)
         if (locConfig.breadcrumb && locConfig.breadcrumb.includes("Passo 3")) {
             const btns = document.querySelectorAll("button, a, [role='button']");
             for (const btn of btns) {
@@ -1015,7 +1012,6 @@ var PetMasterSystem = {
             }
         }
 
-        // BUSCA PADRÃO POR SELETORES
         if (locConfig.selectors && locConfig.selectors.length > 0) {
             for (const sel of locConfig.selectors) {
                 try {
@@ -1030,7 +1026,6 @@ var PetMasterSystem = {
             }
         }
 
-        // BUSCA PADRÃO POR PALAVRAS-CHAVE
         if (locConfig.keywords && locConfig.keywords.length > 0) {
             const candidates = document.querySelectorAll('aside, header, nav, a, button, [role="button"]');
             for (const el of candidates) {
@@ -1047,6 +1042,25 @@ var PetMasterSystem = {
         }
 
         return null;
+    },
+
+    encerrarOnboarding: function() {
+        const widgetEl = document.getElementById(this.constants.WIDGET_ID);
+        widgetEl?.classList.remove("pet-widget-in-tour-highlight");
+        
+        const userKey = this.getUserOnboardingKey(this.emailAluna);
+        this.safeStorage('set', userKey, "true");
+        this.safeStorage('set', this.constants.LS_ONBOARDING_DONE, "true");
+        console.log("🐾 PetMasterSystem: Onboarding Encerrado pelo usuário (X). Gravado no localStorage: " + userKey + " = true");
+        
+        document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
+        
+        const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
+        if (isSocio) {
+            this.iniciarCensoFormulario();
+        } else {
+            this.exibirTravaSocioeconomicoPopup();
+        }
     },
 
     renderTourStep: function(stepIndex) {
@@ -1069,7 +1083,6 @@ var PetMasterSystem = {
         let spotlightHtml = '';
         let cardTop = '50%', cardLeft = '50%', transform = 'translate(-50%, -50%)';
 
-        // NO PASSO 4 (WIDGET FLUTUANTE): ELEVA O WIDGET ACIMA DO OVERLAY E POSICIONA O CARD AO LADO/ACIMA
         if (stepIndex === 3 || (loc.breadcrumb && loc.breadcrumb.includes("Passo 4"))) {
             if (widgetEl) {
                 widgetEl.classList.add("pet-widget-in-tour-highlight");
@@ -1084,7 +1097,6 @@ var PetMasterSystem = {
                     "></div>
                 `;
 
-                // Posiciona o Card Acima/À Esquerda do Widget para NUNCA sobrepor!
                 if (window.innerWidth > 768) {
                     cardLeft = Math.max(20, wRect.left - 460) + 'px';
                     cardTop = Math.max(20, wRect.top - 320) + 'px';
@@ -1139,6 +1151,7 @@ var PetMasterSystem = {
                     <img src="${poseUrl}" id="dandara-tour-side-img" class="pet-tour-dandara-img" alt="Mentora Guia">
                 </div>
                 <div class="pet-tour-card" role="dialog" aria-modal="true">
+                    <button type="button" class="close-tour-btn" id="pet-tour-close" aria-label="Fechar tour">✕</button>
                     ${sandboxBadge}
                     <div class="pet-guide-header">
                         <div class="pet-guide-meta">
@@ -1176,6 +1189,12 @@ var PetMasterSystem = {
             }
         });
 
+        document.getElementById('pet-tour-close')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.encerrarOnboarding();
+        });
+
         document.getElementById('pet-tour-prev')?.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -1190,20 +1209,7 @@ var PetMasterSystem = {
             if (self.tourCurrentStep < self.tourLocations.length - 1) {
                 self.renderTourStep(self.tourCurrentStep + 1);
             } else {
-                widgetEl?.classList.remove("pet-widget-in-tour-highlight");
-                const userKey = self.getUserOnboardingKey(self.emailAluna);
-                self.safeStorage('set', userKey, "true");
-                self.safeStorage('set', self.constants.LS_ONBOARDING_DONE, "true");
-                console.log("🐾 PetMasterSystem: Onboarding Concluído! Gravado no localStorage: " + userKey + " = true");
-                
-                document.getElementById(self.constants.TOUR_OVERLAY_ID)?.remove();
-                
-                const isSocio = self.safeStorage('get', self.constants.LS_USER_SOCIO) === "true";
-                if (isSocio) {
-                    self.iniciarCensoFormulario();
-                } else {
-                    self.exibirTravaSocioeconomicoPopup();
-                }
+                self.encerrarOnboarding();
             }
         });
     },
