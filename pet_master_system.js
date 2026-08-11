@@ -361,6 +361,14 @@ var PetMasterSystem = {
     formElements: {},
     memoryStorage: {},
 
+    racesCache: {
+        cachorro: ["Vira-lata Caramelo 🐾", "Vira-lata / SRD", "American Bully", "Beagle", "Border Collie", "Bulldog Francês", "Chihuahua", "Golden Retriever", "Labrador", "Lhasa Apso", "Maltês", "Pastor Alemão", "Pinscher", "Poodle", "Pug", "Rottweiler", "Shih Tzu", "Spitz Alemão / Sfe", "Yorkshire"],
+        gato: ["Vira-lata / SRD 🐾", "Angorá", "Bengal", "British Shorthair", "Maine Coon", "Persa", "Ragdoll", "Siamês", "Sphynx"],
+        coelho: ["Mini Lion Head 🐇", "Mini Lop", "Netherland Dwarf", "Flemish Giant (Gigante)", "Angorá", "Sem Raça Definida / Comum"],
+        ave: ["Galinha Caipira / Comum 🐓", "Galo Índio Gigante", "Galinha Sedosa do Japão (Silkie)", "Galinha Garnizé", "Galo Rhode Island Red", "Galinha caipira poedeira"],
+        pato: ["Pato de Pequim (Branco) 🦆", "Pato Corredor Indiano", "Marreco de Pequim", "Marreco Carolina", "Pato Comum / Caipira"]
+    },
+
     ativarFalaDandara: function(parentWrap, duracaoMs) {
         if (!parentWrap) return;
         try {
@@ -916,313 +924,348 @@ var PetMasterSystem = {
     setupDraggable: function(elmnt) {
         var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0; const self = this;
         const savedX = this.safeStorage('get', 'petX'), savedY = this.safeStorage('get', 'petY');
-        if (savedX && savedY) { elmnt.style.left = savedX; elmnt.style.top = savedY; elmnt.style.bottom = 'auto'; elmnt.style.right = 'auto'; } 
-        else { elmnt.style.bottom = "25px"; elmnt.style.right = "25px"; }
+        if (savedX && savedY) { 
+            elmnt.style.left = savedX; elmnt.style.top = savedY; elmnt.style.bottom = 'auto'; elmnt.style.right = 'auto';
+        } else { elmnt.style.bottom = "25px"; elmnt.style.right = "25px"; }
         
         const handle = elmnt.querySelector('.pet-drag-handle') || elmnt;
-        handle.addEventListener('mousedown', dragStart); handle.addEventListener('touchstart', dragStart, { passive: false });
+        
+        handle.addEventListener('mousedown', dragStart);
+        handle.addEventListener('touchstart', dragStart, { passive: false });
 
         function dragStart(e) {
             e = e || window.event;
-            pos3 = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-            pos4 = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-            document.addEventListener('mouseup', closeDragElement); document.addEventListener('mousemove', elementDrag);
-            document.addEventListener('touchend', closeDragElement); document.addEventListener('touchmove', elementDrag, { passive: false }); 
+            if(e.type === 'touchstart') { pos3 = e.touches[0].clientX; pos4 = e.touches[0].clientY; } 
+            else { pos3 = e.clientX; pos4 = e.clientY; }
+            
+            document.addEventListener('mouseup', closeDragElement);
+            document.addEventListener('mousemove', elementDrag);
+            document.addEventListener('touchend', closeDragElement);
+            document.addEventListener('touchmove', elementDrag, { passive: false }); 
         }
         function elementDrag(e) {
-            e = e || window.event; if(e.type === 'touchmove') e.preventDefault(); 
+            e = e || window.event;
+            if(e.type === 'touchmove') e.preventDefault(); 
+            
             let cx = e.clientX || (e.touches ? e.touches[0].clientX : 0);
             let cy = e.clientY || (e.touches ? e.touches[0].clientY : 0);
             pos1 = pos3 - cx; pos2 = pos4 - cy; pos3 = cx; pos4 = cy;
-            elmnt.style.top = Math.max(0, Math.min(elmnt.offsetTop - pos2, window.innerHeight - elmnt.offsetHeight)) + "px";
-            elmnt.style.left = Math.max(0, Math.min(elmnt.offsetLeft - pos1, window.innerWidth - elmnt.offsetWidth)) + "px";
+            
+            let newTop = elmnt.offsetTop - pos2; let newLeft = elmnt.offsetLeft - pos1;
+            newTop = Math.max(0, Math.min(newTop, window.innerHeight - elmnt.offsetHeight));
+            newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - elmnt.offsetWidth));
+            
+            elmnt.style.top = newTop + "px"; elmnt.style.left = newLeft + "px";
         }
         function closeDragElement() {
-            document.removeEventListener('mouseup', closeDragElement); document.removeEventListener('mousemove', elementDrag);
-            document.removeEventListener('touchend', closeDragElement); document.removeEventListener('touchmove', elementDrag);
+            document.removeEventListener('mouseup', closeDragElement);
+            document.removeEventListener('mousemove', elementDrag);
+            document.removeEventListener('touchend', closeDragElement);
+            document.removeEventListener('touchmove', elementDrag);
             self.safeStorage('set', 'petX', elmnt.style.left); self.safeStorage('set', 'petY', elmnt.style.top);
         }
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                let rect = elmnt.getBoundingClientRect();
+                if (rect.right > window.innerWidth || rect.bottom > window.innerHeight) {
+                    elmnt.style.left = Math.max(0, Math.min(elmnt.offsetLeft, window.innerWidth - elmnt.offsetWidth)) + "px";
+                    elmnt.style.top = Math.max(0, Math.min(elmnt.offsetTop, window.innerHeight - elmnt.offsetHeight)) + "px";
+                }
+            }, 250);
+        });
     },
 
     fazerCaminhadaVertical: function() {
-        if (!this.isMembroLogado()) return;
+        const existingWalk = document.getElementById(this.constants.WALK_CONTAINER_ID);
+        if (existingWalk) existingWalk.remove();
+
         const container = document.createElement('div');
-        container.id = this.constants.WALK_CONTAINER_ID; container.className = 'pet-overlay-global';
-        container.style.backgroundColor = 'rgba(26, 24, 80, 0.1)'; container.style.backdropFilter = 'blur(0px)';
-        document.body.appendChild(container); document.body.classList.add("modal-open-circle");
+        container.id = this.constants.WALK_CONTAINER_ID;
+        container.className = 'pet-overlay-global';
+        container.style.backgroundColor = 'rgba(26, 24, 80, 0.15)'; 
+        container.style.backdropFilter = 'blur(0px)';
+        document.body.appendChild(container);
+        document.body.classList.add("modal-open-circle");
 
         const passos = [
-            { bottom: '5%', left: '38%', rot: -25 }, { bottom: '20%', left: '55%', rot: 25 },
-            { bottom: '35%', left: '40%', rot: -15 }, { bottom: '50%', left: '53%', rot: 15 },
-            { bottom: '65%', left: '42%', rot: -10 }, { bottom: '80%', left: '51%', rot: 10 }
+            { bottom: '8%', left: '38%', rot: -25 }, { bottom: '22%', left: '55%', rot: 25 },
+            { bottom: '38%', left: '40%', rot: -15 }, { bottom: '54%', left: '53%', rot: 15 },
+            { bottom: '68%', left: '42%', rot: -10 }, { bottom: '82%', left: '51%', rot: 10 }
         ];
         
         passos.forEach((p, i) => {
             setTimeout(() => {
-                const pawWrap = document.createElement('div'); pawWrap.className = 'paw-step-container';
+                const pawWrap = document.createElement('div');
+                pawWrap.className = 'paw-step-container';
                 pawWrap.style.bottom = p.bottom; pawWrap.style.left = p.left; pawWrap.style.transform = `rotate(${p.rot}deg)`; 
-                pawWrap.innerHTML = `<span class="paw-stamp">🐾</span>`; container.appendChild(pawWrap);
+                pawWrap.innerHTML = `<span class="paw-stamp">🐾</span>`;
+                container.appendChild(pawWrap);
             }, i * 250);
         });
 
         setTimeout(() => {
-            document.getElementById(this.constants.WALK_CONTAINER_ID)?.remove();
-            document.body.classList.remove("modal-open-circle");
-            this.iniciarOnboardingFluido();
+            container.style.backgroundColor = 'rgba(15, 23, 42, 0.85)'; 
+            container.style.backdropFilter = 'blur(8px)';
+            document.querySelectorAll('.paw-step-container').forEach(p => p.style.opacity = '0');
+            setTimeout(() => container.remove(), 400);
+            this.iniciarTourGuiado();
         }, passos.length * 250 + 350);
     },
 
-    iniciarOnboardingFluido: function() {
-        if (!this.isMembroLogado()) return;
+    iniciarTourGuiado: function() {
+        document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
+        document.getElementById(this.constants.SPOTLIGHT_ID)?.remove();
+        document.body.classList.add("modal-open-circle");
+
+        const overlay = document.createElement('div');
+        overlay.id = this.constants.TOUR_OVERLAY_ID;
+        overlay.className = 'pet-overlay-global';
+        overlay.style.background = 'transparent';
+        overlay.style.pointerEvents = 'auto';
+
+        const spotlight = document.createElement('div');
+        spotlight.id = this.constants.SPOTLIGHT_ID;
+        spotlight.className = 'pet-spotlight-ring';
+
+        document.body.appendChild(spotlight);
+        document.body.appendChild(overlay);
+
         this.tourCurrentStep = 0;
-        this.renderTourStep(0);
+        this.mostrarPassoTour(0);
     },
 
-    findTargetElement: function(locConfig) {
-        if (!locConfig) return null;
-
-        if (locConfig.breadcrumb && locConfig.breadcrumb.includes("Passo 2")) {
-            const navBar = document.querySelector(".header-navigation-bar, [class*='header-navigation-bar'], #header-navigation-bar");
-            if (navBar && navBar.offsetWidth > 0 && navBar.offsetHeight > 0) {
-                return navBar;
-            }
-            const topNavs = document.querySelectorAll("header, nav, [class*='header'], [class*='nav']");
-            for (const el of topNavs) {
-                if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
-                    if (el.closest('main') || el.closest('[class*="feed"]') || el.closest('[class*="post"]')) continue;
-                    const text = (el.innerText || el.textContent || '').toLowerCase();
-                    if (text.includes('cursos') || text.includes('página inicial') || text.includes('pagina inicial') || text.includes('membros')) {
+    localizarElementoTour: function(loc) {
+        if (!loc || !loc.selectors) return null;
+        for (let sel of loc.selectors) {
+            try {
+                const el = document.querySelector(sel);
+                if (el && el.offsetParent !== null) return el;
+            } catch(e){}
+        }
+        if (loc.keywords && loc.keywords.length > 0) {
+            const allElements = document.querySelectorAll('a, button, nav, div, section, header, aside, span');
+            for (let el of allElements) {
+                if (el.offsetParent === null) continue;
+                const txt = (el.innerText || el.textContent || "").toLowerCase();
+                for (let kw of loc.keywords) {
+                    if (txt.includes(kw.toLowerCase())) {
                         return el;
                     }
                 }
             }
         }
-
-        if (locConfig.breadcrumb && locConfig.breadcrumb.includes("Passo 3")) {
-            const btns = document.querySelectorAll("button, a, [role='button']");
-            for (const btn of btns) {
-                if (btn && btn.offsetWidth > 0 && btn.offsetHeight > 0) {
-                    const text = (btn.innerText || btn.textContent || '').toLowerCase().trim();
-                    const html = btn.innerHTML || '';
-                    const cls = typeof btn.className === 'string' ? btn.className : '';
-                    if (text.includes('criar uma publicação') || text.includes('criar uma publicacao') || text.includes('nova publicação') || html.includes('icon-20-plus-v2') || (cls.includes('border-primary') && cls.includes('bg-primary'))) {
-                        return btn;
-                    }
-                }
-            }
-        }
-
-        if (locConfig.selectors && locConfig.selectors.length > 0) {
-            for (const sel of locConfig.selectors) {
-                try {
-                    const els = document.querySelectorAll(sel);
-                    for (const el of els) {
-                        if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
-                            if (sel.includes('header') && (el.closest('main') || el.querySelector('h1, h2'))) continue;
-                            return el;
-                        }
-                    }
-                } catch(e) {}
-            }
-        }
-
-        if (locConfig.keywords && locConfig.keywords.length > 0) {
-            const candidates = document.querySelectorAll('aside, header, nav, a, button, [role="button"]');
-            for (const el of candidates) {
-                if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
-                    const textContent = (el.innerText || el.textContent || '').toLowerCase().trim();
-                    for (const kw of locConfig.keywords) {
-                        const targetKw = kw.toLowerCase().trim();
-                        if (textContent.includes(targetKw)) {
-                            return el;
-                        }
-                    }
-                }
-            }
-        }
-
         return null;
     },
 
-    encerrarOnboarding: function() {
-        const widgetEl = document.getElementById(this.constants.WIDGET_ID);
-        widgetEl?.classList.remove("pet-widget-in-tour-highlight");
-        
+    mostrarPassoTour: function(stepIndex) {
+        const loc = this.tourLocations[stepIndex];
+        if (!loc) return;
+        this.tourCurrentStep = stepIndex;
+
+        const overlay = document.getElementById(this.constants.TOUR_OVERLAY_ID);
+        const spotlight = document.getElementById(this.constants.SPOTLIGHT_ID);
+        if (!overlay || !spotlight) return;
+
+        overlay.innerHTML = '';
+
+        const targetEl = this.localizarElementoTour(loc);
+        const isMobile = window.innerWidth <= 768;
+        let rect = null;
+
+        if (targetEl && targetEl.getBoundingClientRect) {
+            rect = targetEl.getBoundingClientRect();
+        }
+
+        if (rect && rect.width > 0 && rect.height > 0) {
+            const padding = 8;
+            spotlight.style.display = 'block';
+            spotlight.style.top = Math.max(4, rect.top - padding) + 'px';
+            spotlight.style.left = Math.max(4, rect.left - padding) + 'px';
+            spotlight.style.width = Math.min(window.innerWidth - 10, rect.width + (padding * 2)) + 'px';
+            spotlight.style.height = Math.min(window.innerHeight - 10, rect.height + (padding * 2)) + 'px';
+        } else {
+            spotlight.style.display = 'none';
+        }
+
+        const poseUrl = this.poses[loc.pose] || this.poses.boasVindas;
+        const isLastStep = stepIndex === this.tourLocations.length - 1;
+
+        const tourWrapper = document.createElement('div');
+        tourWrapper.className = 'pet-tour-wrapper';
+
+        if (!isMobile) {
+            if (rect && rect.width > 0) {
+                if (stepIndex === 0) {
+                    tourWrapper.style.top = Math.max(20, rect.top) + 'px';
+                    tourWrapper.style.left = Math.min(window.innerWidth - 480, rect.right + 24) + 'px';
+                } else if (stepIndex === 1) {
+                    tourWrapper.style.top = Math.min(window.innerHeight - 380, rect.bottom + 20) + 'px';
+                    tourWrapper.style.left = Math.max(20, Math.min(window.innerWidth - 480, rect.left)) + 'px';
+                } else if (stepIndex === 2) {
+                    tourWrapper.style.top = Math.min(window.innerHeight - 380, rect.bottom + 20) + 'px';
+                    tourWrapper.style.left = Math.max(20, Math.min(window.innerWidth - 480, rect.left - 100)) + 'px';
+                } else {
+                    tourWrapper.style.bottom = '80px';
+                    tourWrapper.style.right = '30px';
+                    tourWrapper.style.top = 'auto';
+                    tourWrapper.style.left = 'auto';
+                }
+            } else {
+                tourWrapper.style.top = '50%';
+                tourWrapper.style.left = '50%';
+                tourWrapper.style.transform = 'translate(-50%, -50%)';
+            }
+        }
+
+        const whatsappBtnHtml = isLastStep ? `
+            <a href="${this.whatsappArrasasUrl}" target="_blank" class="btn-whatsapp-arrasas">
+                💬 Entrar no Grupo de Dúvidas
+            </a>
+        ` : '';
+
+        tourWrapper.innerHTML = `
+            <div class="pet-tour-card">
+                <button class="close-tour-btn" id="close-pet-tour" title="Pular Onboarding">✕</button>
+                <div class="pet-guide-header">
+                    <div class="pet-guide-meta">
+                        <span class="pet-guide-name">${this.guideName}</span>
+                        <span class="pet-guide-role">${this.guideRole}</span>
+                    </div>
+                </div>
+                <div id="dandara-speech-bubble" class="pet-dandara-interactive-bubble"></div>
+                <span class="pet-tour-location-badge">${loc.breadcrumb}</span>
+                <h3 class="pet-tour-title">${loc.title}</h3>
+                <div class="pet-tour-desc">${loc.desc}</div>
+                ${whatsappBtnHtml}
+                <div class="pet-tour-nav" style="margin-top: 18px;">
+                    <span class="pet-tour-step-count">Passo ${stepIndex + 1} de ${this.tourLocations.length}</span>
+                    <div style="display: flex; gap: 10px;">
+                        ${stepIndex > 0 ? `<button type="button" class="btn-pet btn-pet-prev" id="pet-tour-prev-btn" style="padding: 10px 16px; font-size: 13px;">⬅️ Anterior</button>` : ''}
+                        <button type="button" class="btn-pet btn-pet-next" id="pet-tour-next-btn" style="padding: 10px 18px; font-size: 13.5px;">
+                            ${isLastStep ? 'Concluir Tour 🐾' : 'Próximo Passo ➡️'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="pet-tour-dandara-side" id="dandara-tour-character" title="Clique para conversar com a Mentora!">
+                <img src="${poseUrl}" class="pet-tour-dandara-img" alt="Mentora Dandara">
+            </div>
+        `;
+
+        overlay.appendChild(tourWrapper);
+        this.trapFocus(tourWrapper);
+
+        document.getElementById('dandara-tour-character')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.falarComDandara(document.getElementById('dandara-tour-character'));
+        });
+
+        document.getElementById('close-pet-tour')?.addEventListener('click', () => this.concluirTour());
+        document.getElementById('pet-tour-prev-btn')?.addEventListener('click', () => {
+            if (this.tourCurrentStep > 0) this.mostrarPassoTour(this.tourCurrentStep - 1);
+        });
+        document.getElementById('pet-tour-next-btn')?.addEventListener('click', () => {
+            if (this.tourCurrentStep < this.tourLocations.length - 1) {
+                this.mostrarPassoTour(this.tourCurrentStep + 1);
+            } else {
+                this.concluirTour();
+            }
+        });
+    },
+
+    concluirTour: function() {
+        document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
+        document.getElementById(this.constants.SPOTLIGHT_ID)?.remove();
+        document.body.classList.remove("modal-open-circle");
+
         const userKey = this.getUserOnboardingKey(this.emailAluna);
         this.safeStorage('set', userKey, "true");
         this.safeStorage('set', this.constants.LS_ONBOARDING_DONE, "true");
-        console.log("🐾 PetMasterSystem: Onboarding Encerrado pelo usuário (X). Gravado no localStorage: " + userKey + " = true");
-        
-        document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
-        
+
+        console.log("🎉 PetMasterSystem: Tour Concluído com sucesso! (Chave salva: " + userKey + ")");
+
         const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
-        if (isSocio) {
-            this.iniciarCensoFormulario();
-        } else {
+        const censoConcluido = !this.sandboxMode && this.safeStorage('get', this.constants.LS_PARTICIPADO) === "true";
+
+        if (!censoConcluido) {
+            this.censoEmAndamento = true;
+            this.mostrarIntro(document.body);
+        } else if (!isSocio) {
             this.exibirTravaSocioeconomicoPopup();
         }
     },
 
-    renderTourStep: function(stepIndex) {
-        if (!this.isMembroLogado()) return;
-        const self = this;
-        self.tourCurrentStep = stepIndex;
+    exibirTravaSocioeconomicoPopup: function() {
+        if (document.getElementById("circle-popup-socoeco")) return;
+        if (sessionStorage.getItem('pet_popup_ignorado_sessao') === 'true') return;
 
-        let overlay = document.getElementById(self.constants.TOUR_OVERLAY_ID);
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = self.constants.TOUR_OVERLAY_ID;
-            document.body.appendChild(overlay);
-        }
-
-        const widgetEl = document.getElementById(self.constants.WIDGET_ID);
-
-        const loc = self.tourLocations[stepIndex];
-        const targetEl = self.findTargetElement(loc);
-
-        let spotlightHtml = '';
-        let cardTop = '50%', cardLeft = '50%', transform = 'translate(-50%, -50%)';
-
-        if (stepIndex === 3 || (loc.breadcrumb && loc.breadcrumb.includes("Passo 4"))) {
-            if (widgetEl) {
-                widgetEl.classList.add("pet-widget-in-tour-highlight");
-                const wRect = widgetEl.getBoundingClientRect();
-                
-                spotlightHtml = `
-                    <div class="pet-spotlight-ring" style="
-                        top: ${Math.max(0, wRect.top - 8)}px;
-                        left: ${Math.max(0, wRect.left - 8)}px;
-                        width: ${wRect.width + 16}px;
-                        height: ${wRect.height + 16}px;
-                    "></div>
-                `;
-
-                if (window.innerWidth > 768) {
-                    cardLeft = Math.max(20, wRect.left - 460) + 'px';
-                    cardTop = Math.max(20, wRect.top - 320) + 'px';
-                    transform = 'none';
-                } else {
-                    cardLeft = '0px';
-                    cardTop = 'auto';
-                    transform = 'none';
-                }
-            }
-        } else {
-            if (widgetEl) widgetEl.classList.remove("pet-widget-in-tour-highlight");
-
-            if (targetEl) {
-                try {
-                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-                } catch(e) {}
-
-                const rect = targetEl.getBoundingClientRect();
-                const padding = 10;
-                spotlightHtml = `
-                    <div class="pet-spotlight-ring" style="
-                        top: ${Math.max(0, rect.top - padding)}px;
-                        left: ${Math.max(0, rect.left - padding)}px;
-                        width: ${rect.width + padding * 2}px;
-                        height: ${rect.height + padding * 2}px;
-                    "></div>
-                `;
-
-                if (rect.left > window.innerWidth / 2) {
-                    cardLeft = Math.max(20, rect.left - 480) + 'px';
-                    cardTop = Math.min(window.innerHeight - 360, Math.max(20, rect.top - 20)) + 'px';
-                    transform = 'none';
-                } else {
-                    cardLeft = Math.min(window.innerWidth - 480, rect.right + 20) + 'px';
-                    cardTop = Math.min(window.innerHeight - 360, Math.max(20, rect.top - 20)) + 'px';
-                    transform = 'none';
-                }
-
-                if (window.innerWidth < 768) { cardLeft = '0px'; cardTop = 'auto'; transform = 'none'; }
-            }
-        }
-
-        const isLastStep = stepIndex === self.tourLocations.length - 1;
-        const poseUrl = self.poses[loc.pose || "boasVindas"];
-        const sandboxBadge = self.sandboxMode ? `<span class="pet-sandbox-tag">🧪 MODO SANDBOX ATIVO</span>` : '';
-
-        overlay.innerHTML = `
-            ${spotlightHtml}
-            <div class="pet-tour-wrapper" style="top: ${cardTop}; left: ${cardLeft}; transform: ${transform};">
-                <div class="pet-tour-dandara-side" id="dandara-tour-side-wrap" title="Clique para conversar com a Mentora! 💬">
-                    <img src="${poseUrl}" id="dandara-tour-side-img" class="pet-tour-dandara-img" alt="Mentora Guia">
+        const modalHtml = `
+            <div id="circle-popup-socoeco" class="pet-overlay-global" style="background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);">
+                <div role="dialog" aria-modal="true" aria-labelledby="popup-socoeco-title" style="background: white; width: 90%; max-width: 500px; border-radius: 24px; padding: 32px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.35); border: 2px solid #e08b26;">
+                    <div style="font-size: 50px; margin-bottom: 8px;">🚀</div>
+                    <h3 id="popup-socoeco-title" style="margin: 0 0 14px; font-size: 20px; font-weight: 900; color: #1a1850; line-height: 1.3;">Ative suas Medalhas e Prêmios, Mulher!</h3>
+                    <p style="font-size: 14px; color: #475569; margin: 0 0 22px; line-height: 1.6;">
+                        Se você quer entrar no jogo pra vencer, acumular <strong>Arrasas</strong> e botar no bolso o seu auxílio de R$ 100,00, falta só preencher o formulário socioeconômico!
+                    </p>
+                    <a href="${this.socioFormUrl}" target="_blank" style="display: block; background: #e08b26; color: white; text-decoration: none; padding: 16px; border-radius: 14px; font-weight: 900; font-size: 15px; margin-bottom: 14px; box-shadow: 0 6px 20px rgba(224, 139, 38, 0.35); transition: background 0.2s;">
+                        Preencher e Ativar Meu Saldo 🐾
+                    </a>
+                    <button id="close-circle-popup-btn" aria-label="Fechar e preencher mais tarde" style="background: none; border: none; color: #64748b; font-size: 13px; cursor: pointer; text-decoration: underline;">
+                        Vou preencher mais tarde
+                    </button>
                 </div>
-                <div class="pet-tour-card" role="dialog" aria-modal="true">
-                    <button type="button" class="close-tour-btn" id="pet-tour-close" aria-label="Fechar tour">✕</button>
-                    ${sandboxBadge}
-                    <div class="pet-guide-header">
-                        <div class="pet-guide-meta">
-                            <span class="pet-guide-name">${self.guideName} 👩🏾</span>
-                            <span class="pet-guide-role">${self.guideRole}</span>
-                        </div>
-                    </div>
-                    <div id="dandara-speech-bubble" class="pet-dandara-interactive-bubble"></div>
-                    <div class="pet-tour-location-badge">${loc.breadcrumb}</div>
-                    <h3 class="pet-tour-title">${loc.title}</h3>
-                    <p class="pet-tour-desc">${loc.desc}</p>
-                    <div class="pet-tour-nav">
-                        <span class="pet-tour-step-count">Passo ${stepIndex + 1} de ${self.tourLocations.length}</span>
-                        <div style="display:flex; gap: 8px;">
-                            ${stepIndex > 0 ? `<button type="button" class="btn-pet btn-pet-prev" id="pet-tour-prev">Voltar</button>` : ''}
-                            <button type="button" class="btn-pet btn-pet-next" id="pet-tour-next">
-                                ${isLastStep ? 'Concluir Tour 🚀' : 'Próximo Local ➡️'}
-                            </button>
-                        </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        document.body.classList.add('modal-open-circle');
+        this.trapFocus(document.getElementById("circle-popup-socoeco"));
+
+        document.getElementById("close-circle-popup-btn")?.addEventListener("click", () => {
+            document.getElementById("circle-popup-socoeco")?.remove();
+            document.body.classList.remove('modal-open-circle');
+            sessionStorage.setItem('pet_popup_ignorado_sessao', 'true');
+        });
+    },
+
+    mostrarIntro: function(container) {
+        const introHtml = `
+            <div class="pet-overlay-global" id="pet-intro-overlay" style="background: rgba(26, 24, 80, 0.75); backdrop-filter: blur(8px);">
+                <div class="pet-form-card" id="${this.constants.INTRO_CARD_ID}" role="dialog" aria-modal="true" aria-labelledby="intro-pet-title">
+                    <div style="padding: 40px 30px; text-align: center;">
+                        <div style="font-size: 60px; margin-bottom: 10px;" aria-hidden="true">🏡</div>
+                        <h2 id="intro-pet-title" style="color:#1a1850; font-weight: 900; margin: 0 0 15px 0;">Olá, Aluna! 🐾</h2>
+                        <p style="color:#475569; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">
+                            Estamos fazendo uma pesquisa especial para conhecer melhor a <b>sua família animal</b>. Queremos entender quem são seus companheiros de vida!
+                        </p>
+                        <button id="start-censo-btn" class="btn-pet btn-pet-next" style="width: 100%; font-size: 16px;">
+                            Começar Censo Pet 🐾
+                        </button>
+                        <button id="close-intro-pet" aria-label="Dispensar pesquisa" style="background: none; border: none; color: #64748b; font-size: 13px; cursor: pointer; text-decoration: underline; margin-top: 15px;">
+                            Não tenho pet / Fechar
+                        </button>
                     </div>
                 </div>
             </div>
         `;
-
-        self.trapFocus(overlay);
-
-        const tourWrap = document.getElementById('dandara-tour-side-wrap');
-        if (tourWrap && typeof self.ativarFalaDandara === 'function') {
-            self.ativarFalaDandara(tourWrap, 3500);
-        }
-
-        tourWrap?.addEventListener('click', function() {
-            if (typeof self.falarComDandara === 'function') {
-                self.falarComDandara(tourWrap);
-            }
+        document.body.insertAdjacentHTML('beforeend', introHtml);
+        this.trapFocus(document.getElementById(this.constants.INTRO_CARD_ID));
+        
+        document.getElementById("start-censo-btn")?.addEventListener("click", () => {
+            document.getElementById("pet-intro-overlay")?.remove();
+            this.iniciarCensoFormulario();
         });
 
-        document.getElementById('pet-tour-close')?.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            self.encerrarOnboarding();
-        });
-
-        document.getElementById('pet-tour-prev')?.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (self.tourCurrentStep > 0) {
-                self.renderTourStep(self.tourCurrentStep - 1);
-            }
-        });
-
-        document.getElementById('pet-tour-next')?.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (self.tourCurrentStep < self.tourLocations.length - 1) {
-                self.renderTourStep(self.tourCurrentStep + 1);
-            } else {
-                self.encerrarOnboarding();
-            }
+        document.getElementById("close-intro-pet")?.addEventListener("click", () => {
+            document.getElementById("pet-intro-overlay")?.remove();
+            this.safeStorage('set', this.constants.LS_PARTICIPADO, "true");
+            this.fecharCenso();
         });
     },
 
     iniciarCensoFormulario: function() {
-        if (!this.isMembroLogado()) return;
-        const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
-        if (!isSocio && !this.sandboxMode) {
-            this.exibirTravaSocioeconomicoPopup();
-            return;
-        }
-
-        document.getElementById(this.constants.TOUR_OVERLAY_ID)?.remove();
         document.getElementById(this.constants.WALK_CONTAINER_ID)?.remove();
         this.renderCensoModal();
         this.cacheFormElements();
@@ -1231,17 +1274,18 @@ var PetMasterSystem = {
     renderCensoModal: function() {
         document.getElementById(this.constants.CENSO_MODAL_ID)?.remove();
         const modalHtml = `
-            <div id="${this.constants.CENSO_MODAL_ID}" class="pet-overlay-global" style="background: rgba(26, 24, 80, 0.85); backdrop-filter: blur(12px);">
+            <div id="${this.constants.CENSO_MODAL_ID}" class="pet-overlay-global" style="background: rgba(26, 24, 80, 0.75); backdrop-filter: blur(8px);">
                 <div class="pet-form-card" role="dialog" aria-modal="true" aria-labelledby="censo-pet-title">
                     <div class="pet-form-header">
-                        <div style="font-size: 38px; margin-bottom: 6px;">🐾✨</div>
-                        <h3 id="censo-pet-title" style="margin-top:4px;">Censo Pet da Comunidade 🐾</h3>
-                        <p>Pesquisa Oficial da Família Animal ${this.sandboxMode ? '(Modo Sandbox 🧪)' : ''}</p>
-                        <button class="close-form-btn" id="close-pet-modal" aria-label="Fechar">✕</button>
+                        <h3 id="censo-pet-title">Censo Pet 🐾</h3>
+                        <p>Pesquisa Oficial</p>
+                        <button class="close-form-btn" id="close-pet-modal" aria-label="Fechar formulário">✕</button>
                     </div>
                     <div class="progress-container"><div id="progress-fill"></div></div>
                     <div class="pet-form-body">
                         <form id="pet-wizard-form" onsubmit="return false;">
+                            
+                            <!-- PASSO 1 -->
                             <div class="form-step active" data-step="1">
                                 <div class="pet-input-group">
                                     <label for="${this.constants.FORM_STEP_QTD}">Quantos pets moram com você no total?</label>
@@ -1249,6 +1293,7 @@ var PetMasterSystem = {
                                 </div>
                             </div>
                             
+                            <!-- PASSO 2 -->
                             <div class="form-step" data-step="2">
                                 <div class="pet-cycle-indicator" id="cycle-step-2-label">Ajustando...</div>
                                 <div class="pet-input-group">
@@ -1274,6 +1319,7 @@ var PetMasterSystem = {
                                 <div id="${this.constants.PREVIEW_BOX_ID}" class="pet-image-preview-container" aria-live="polite"><span class="pet-image-preview-placeholder">Carregando foto...</span></div>
                             </div>
                             
+                            <!-- PASSO 3 -->
                             <div class="form-step" data-step="3">
                                 <div class="pet-cycle-indicator" id="cycle-step-3-label">Ajustando...</div>
                                 <div class="pet-input-group">
@@ -1282,6 +1328,7 @@ var PetMasterSystem = {
                                 </div>
                             </div>
                             
+                            <!-- PASSO 4 (Conclusão) -->
                             <div class="form-step" data-step="4" id="${this.constants.FINAL_SCREEN_ID}"></div>
                             
                             <div class="pet-form-footer" id="${this.constants.FOOTER_NAV_ID}">
@@ -1295,7 +1342,9 @@ var PetMasterSystem = {
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         this.trapFocus(document.getElementById(this.constants.CENSO_MODAL_ID));
-        this.setupCensoListeners(); this.setupAutocomplete(); this.atualizarBarraProgresso();
+        this.setupCensoListeners();
+        this.setupAutocomplete();
+        this.atualizarBarraProgresso();
     },
 
     cacheFormElements: function() {
@@ -1315,39 +1364,84 @@ var PetMasterSystem = {
     },
 
     setupAutocomplete: function() {
-        const self = this; const racaInput = document.getElementById("pet-raca"); const suggestionsContainer = document.getElementById("raca-autocomplete-list");
+        const self = this;
+        const racaInput = document.getElementById("pet-raca");
+        const tipoSelect = document.getElementById("pet-tipo");
+        const suggestionsContainer = document.getElementById("raca-autocomplete-list");
+
         const updateSuggestions = () => {
             if (!racaInput || !suggestionsContainer) return;
-            const val = racaInput.value.toLowerCase().trim(); const tipoAtual = document.getElementById("pet-tipo").value.toLowerCase();
-            suggestionsContainer.innerHTML = ""; if (tipoAtual === "outro") { suggestionsContainer.style.display = "none"; return; }
-            suggestionsContainer.style.display = "block"; const racaList = self.racesCache[tipoAtual] || [];
+            const val = racaInput.value.toLowerCase().trim();
+            const tipoAtual = document.getElementById("pet-tipo").value.toLowerCase();
+            
+            suggestionsContainer.innerHTML = "";
+            if (tipoAtual === "outro") { suggestionsContainer.style.display = "none"; return; }
+            
+            suggestionsContainer.style.display = "block";
+            const racaList = self.racesCache[tipoAtual] || [];
             const filtered = !val ? racaList.slice(0,3) : racaList.filter(r => r.toLowerCase().includes(val)).slice(0,5);
+            
             if (filtered.length === 0) { suggestionsContainer.style.display = "none"; return; }
+
             filtered.forEach(raca => {
-                const div = document.createElement("div"); div.className = "autocomplete-item"; div.innerText = raca;
-                div.addEventListener("mousedown", (e) => { e.preventDefault(); racaInput.value = raca; suggestionsContainer.style.display = "none"; self.buscarFotoDaRaca(raca, document.getElementById("pet-tipo").value); });
+                const div = document.createElement("div");
+                div.className = "autocomplete-item";
+                div.innerText = raca;
+                div.addEventListener("mousedown", (e) => { 
+                    e.preventDefault();
+                    racaInput.value = raca; 
+                    suggestionsContainer.style.display = "none";
+                    self.buscarFotoDaRaca(raca, document.getElementById("pet-tipo").value); 
+                });
                 suggestionsContainer.appendChild(div);
             });
         };
-        racaInput.addEventListener("input", updateSuggestions); racaInput.addEventListener("focus", updateSuggestions);
-        document.getElementById("pet-tipo").addEventListener("change", () => { racaInput.value = ""; document.getElementById("pet-preview-box").style.display = "none"; suggestionsContainer.style.display = "none"; });
-        racaInput.addEventListener("blur", () => { setTimeout(() => { suggestionsContainer.style.display = "none"; if (racaInput.value) self.buscarFotoDaRaca(racaInput.value, document.getElementById("pet-tipo").value); }, 150); });
+        
+        racaInput?.addEventListener("input", updateSuggestions);
+        racaInput?.addEventListener("focus", updateSuggestions);
+        tipoSelect?.addEventListener("change", () => { if (racaInput) racaInput.value = ""; if (document.getElementById("pet-preview-box")) document.getElementById("pet-preview-box").style.display = "none"; if (suggestionsContainer) suggestionsContainer.style.display = "none"; });
+        racaInput?.addEventListener("blur", () => { setTimeout(() => { if (suggestionsContainer) suggestionsContainer.style.display = "none"; if (racaInput && racaInput.value) self.buscarFotoDaRaca(racaInput.value, document.getElementById("pet-tipo").value); }, 150); });
     },
 
     buscarFotoDaRaca: async function(raca, tipo) {
-        const previewBox = this.formElements.previewBox; if (!previewBox || tipo === "Outro") { if(previewBox) previewBox.style.display = "none"; return; }
-        previewBox.style.display = "flex"; let imgUrl = ""; const racaLower = raca.toLowerCase().trim();
-        if (racaLower.includes("caramelo") || racaLower.includes("srd") || racaLower.includes("vira-lata")) { imgUrl = "https://raw.githubusercontent.com/juanjsales/PET-Rocinha-assets/main/Fera.webp"; }
+        const previewBox = this.formElements.previewBox;
+        if (!previewBox || tipo === "Outro") { if(previewBox) previewBox.style.display = "none"; return; }
+        
+        previewBox.style.display = "flex";
+        let imgUrl = "";
+        const racaLower = raca.toLowerCase().trim();
+        
+        if (racaLower.includes("caramelo") || racaLower.includes("srd") || racaLower.includes("vira-lata")) {
+            imgUrl = "https://raw.githubusercontent.com/juanjsales/PET-Rocinha-assets/main/Fera.webp";
+        }
         else if (tipo === "Cachorro") {
-            const dogCeoMap = { "american bully": "bullterrier/staffordshire", "beagle": "beagle", "border collie": "collie/border", "bulldog francês": "bulldog/french", "chihuahua": "chihuahua", "golden retriever": "retriever/golden", "labrador": "retriever", "lhasa apso": "lhasa", "maltês": "maltese", "pastor alemão": "germanshepherd", "pinscher": "pinscher/miniature", "poodle": "poodle", "pug": "pug", "rottweiler": "rottweiler", "shih tzu": "shihtzu", "spitz alemão / sfe": "pomeranian", "yorkshire": "terrier/yorkshire" };
+            const dogCeoMap = {
+                "american bully": "bullterrier/staffordshire", "beagle": "beagle", "border collie": "collie/border", 
+                "bulldog francês": "bulldog/french", "chihuahua": "chihuahua", "golden retriever": "retriever/golden", 
+                "labrador": "retriever", "lhasa apso": "lhasa", "maltês": "maltese", "pastor alemão": "germanshepherd", 
+                "pinscher": "pinscher/miniature", "poodle": "poodle", "pug": "pug", "rottweiler": "rottweiler", 
+                "shih tzu": "shihtzu", "spitz alemão / sfe": "pomeranian", "yorkshire": "terrier/yorkshire"
+            };
             const endpoint = dogCeoMap[racaLower];
-            if (endpoint) { try { const res = await fetch(`https://dog.ceo/api/breed/${endpoint}/images/random`); const data = await res.json(); if (data.status === "success") imgUrl = data.message; } catch(e){} }
-            if(!imgUrl) imgUrl = "https://images.unsplash.com/photo-1544568100-847a948585b9?auto=format&fit=crop&w=400&q=80";
+            if (endpoint) {
+                try {
+                    const res = await fetch(`https://dog.ceo/api/breed/${endpoint}/images/random`);
+                    const data = await res.json();
+                    if (data.status === "success") imgUrl = data.message;
+                } catch(e) {}
+            }
+            if(!imgUrl) imgUrl = "https://images.unsplash.com/photo-1544568100-847a948585b9?auto=format&fit=crop&w=400&q=80"; 
         }
         else if (tipo === "Gato") {
             const catMap = {"angorá": "tang", "bengal": "beng", "british shorthair": "bsho", "maine coon": "mcoo", "persa": "pers", "ragdoll": "ragd", "siamês": "siam", "sphynx": "sphy"};
             const id = catMap[racaLower];
-            if (id) { try { const res = await fetch(`https://api.thecatapi.com/v1/images/search?breed_ids=${id}`); const data = await res.json(); if(data && data[0]?.url) imgUrl = data[0].url; } catch(e){} }
+            if (id) {
+                try {
+                    const res = await fetch(`https://api.thecatapi.com/v1/images/search?breed_ids=${id}`);
+                    const data = await res.json();
+                    if(data && data[0]?.url) imgUrl = data[0].url;
+                } catch(e) {}
+            }
             if(!imgUrl) imgUrl = "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=400&q=80";
         }
         else if (tipo === "Coelho") imgUrl = "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=400&q=80";
@@ -1359,14 +1453,22 @@ var PetMasterSystem = {
 
     setupCensoListeners: function() {
         const self = this;
-        document.getElementById("pet-next-btn").addEventListener("click", () => self.avancarFluxo());
-        document.getElementById("pet-prev-btn").addEventListener("click", () => self.retrocederFluxo());
-        document.getElementById("close-pet-modal").addEventListener("click", () => { self.safeStorage('set', self.constants.LS_PARTICIPADO, "true"); self.fecharCenso(); });
-        document.getElementById("pet-gasto-unitario")?.addEventListener("input", self.formatarMoedaBRL);
+        document.getElementById("pet-next-btn")?.addEventListener("click", () => self.avancarFluxo());
+        document.getElementById("pet-prev-btn")?.addEventListener("click", () => self.retrocederFluxo());
+        document.getElementById("close-pet-modal")?.addEventListener("click", () => {
+            self.safeStorage('set', self.constants.LS_PARTICIPADO, "true");
+            self.fecharCenso();
+        });
+        
+        const gastoInput = document.getElementById("pet-gasto-unitario");
+        if (gastoInput) {
+            gastoInput.addEventListener("input", self.formatarMoedaBRL);
+        }
     },
 
     avancarFluxo: function() {
         if (!this.validateCurrentStep()) return;
+        
         if (this.currentStep === 1) {
             this.totalPetsExpected = parseInt(this.formElements.petQtd.value);
             if (this.totalPetsExpected === 0) { this.petsCadastrados = []; this.enviarDadosConsolidados(); return; }
@@ -1375,125 +1477,159 @@ var PetMasterSystem = {
         if (this.currentStep === 2) { this.currentStep = 3; this.mostrarPassoUI(3); return; }
         if (this.currentStep === 3) {
             let gastoStr = this.formElements.petGasto.value.replace(/[^\d,]/g, "").replace(",", ".");
+            
             const tipoSelect = this.formElements.petTipo;
-            this.petsCadastrados.push({ nome: this.formElements.petNome.value.trim(), tipo: tipoSelect.options[tipoSelect.selectedIndex].text, raca: this.formElements.petRaca.value.trim(), gasto: parseFloat(gastoStr) || 0 });
-            if (this.currentPetCycle < this.totalPetsExpected) { this.currentPetCycle++; this.limparFormularioCiclo(); this.preparaProximoCiclo(); this.currentStep = 2; this.mostrarPassoUI(2); } 
-            else { this.enviarDadosConsolidados(); }
+            this.petsCadastrados.push({ 
+                nome: this.formElements.petNome.value.trim(), 
+                tipo: tipoSelect.options[tipoSelect.selectedIndex].text, 
+                raca: this.formElements.petRaca.value.trim(), 
+                gasto: parseFloat(gastoStr) || 0 
+            });
+            
+            if (this.currentPetCycle < this.totalPetsExpected) { 
+                this.currentPetCycle++; this.limparFormularioCiclo(); this.preparaProximoCiclo(); this.currentStep = 2; this.mostrarPassoUI(2); 
+            } else { this.enviarDadosConsolidados(); }
         }
     },
 
     retrocederFluxo: function() {
         if (this.currentStep === 2) {
-            if (this.currentPetCycle === 1) { this.setRequiredFieldsForCycle(false); this.currentStep = 1; this.mostrarPassoUI(1); } 
-            else { this.currentPetCycle--; this.petsCadastrados.pop(); this.preencherDadosNoCiclo(this.petsCadastrados[this.petsCadastrados.length - 1] || {}); this.preparaProximoCiclo(); this.currentStep = 3; this.mostrarPassoUI(3); }
+            if (this.currentPetCycle === 1) { this.setRequiredFieldsForCycle(false); this.currentStep = 1; this.mostrarPassoUI(1); 
+            } else { this.currentPetCycle--; this.petsCadastrados.pop(); this.preencherDadosNoCiclo(this.petsCadastrados[this.petsCadastrados.length - 1] || {}); this.preparaProximoCiclo(); this.currentStep = 3; this.mostrarPassoUI(3); }
         } else if (this.currentStep === 3) { this.currentStep = 2; this.mostrarPassoUI(2); }
     },
 
-    setRequiredFieldsForCycle: function(s) { this.formElements.petNome.required = s; this.formElements.petRaca.required = s; this.formElements.petGasto.required = s; },
-    preparaProximoCiclo: function() { document.getElementById("cycle-step-2-label").innerText = `Pet ${this.currentPetCycle} de ${this.totalPetsExpected} 🐾`; document.getElementById("cycle-step-3-label").innerText = `Pet ${this.currentPetCycle} de ${this.totalPetsExpected} 🐾`; this.formElements.previewBox.style.display = "none"; },
-    limparFormularioCiclo: function() { this.formElements.petNome.value = ""; this.formElements.petTipo.value = "Cachorro"; this.formElements.petRaca.value = ""; this.formElements.petGasto.value = ""; },
-    preencherDadosNoCiclo: function(p) { this.formElements.petNome.value = p.nome || ""; this.formElements.petTipo.value = p.tipo || "Cachorro"; this.formElements.petRaca.value = p.raca || ""; this.formElements.petGasto.value = p.gasto ? "R$ " + p.gasto.toFixed(2).replace(".",",") : ""; if (p.raca) this.buscarFotoDaRaca(p.raca, p.tipo); },
+    setRequiredFieldsForCycle: function(s) { 
+        if (this.formElements.petNome) this.formElements.petNome.required = s;
+        if (this.formElements.petRaca) this.formElements.petRaca.required = s;
+        if (this.formElements.petGasto) this.formElements.petGasto.required = s; 
+    },
+    preparaProximoCiclo: function() { 
+        const s2 = document.getElementById("cycle-step-2-label");
+        const s3 = document.getElementById("cycle-step-3-label");
+        if (s2) s2.innerText = `Pet ${this.currentPetCycle} de ${this.totalPetsExpected} 🐾`; 
+        if (s3) s3.innerText = `Pet ${this.currentPetCycle} de ${this.totalPetsExpected} 🐾`; 
+        if (this.formElements.previewBox) this.formElements.previewBox.style.display = "none"; 
+    },
+    limparFormularioCiclo: function() { 
+        if (this.formElements.petNome) this.formElements.petNome.value = "";
+        if (this.formElements.petTipo) this.formElements.petTipo.value = "Cachorro";
+        if (this.formElements.petRaca) this.formElements.petRaca.value = "";
+        if (this.formElements.petGasto) this.formElements.petGasto.value = ""; 
+    },
+    preencherDadosNoCiclo: function(p) { 
+        if (this.formElements.petNome) this.formElements.petNome.value = p.nome || "";
+        if (this.formElements.petTipo) this.formElements.petTipo.value = p.tipo || "Cachorro";
+        if (this.formElements.petRaca) this.formElements.petRaca.value = p.raca || ""; 
+        if (this.formElements.petGasto) this.formElements.petGasto.value = p.gasto ? "R$ " + p.gasto.toFixed(2).replace(".",",") : ""; 
+        if (p.raca) this.buscarFotoDaRaca(p.raca, p.tipo); 
+    },
 
     mostrarPassoUI: function(s) {
         document.querySelectorAll(".form-step").forEach(d => {
             d.style.opacity = 0;
             setTimeout(() => {
                 d.classList.toggle("active", parseInt(d.dataset.step) === s);
-                if(parseInt(d.dataset.step) === s) { d.style.opacity = 1; const f = d.querySelector('input, select'); if(f) f.focus(); }
+                if(parseInt(d.dataset.step) === s) {
+                    d.style.opacity = 1;
+                    const f = d.querySelector('input, select');
+                    if(f) f.focus();
+                }
             }, 150);
-        }); 
-        this.formElements.prevBtn.style.display = s === 1 ? "none" : "block"; 
+        });
+        if (this.formElements.prevBtn) this.formElements.prevBtn.style.display = s === 1 ? "none" : "block"; 
+        
         let nextBtnText = "Avançar ➡️";
         if (s === 1) nextBtnText = "Iniciar Cadastro 🐾";
         if (s === 3) nextBtnText = (this.currentPetCycle === this.totalPetsExpected ? "Finalizar e Enviar 🚀" : "Próximo Pet ➡️");
-        this.formElements.nextBtn.innerText = nextBtnText;
+        
+        if (this.formElements.nextBtn) this.formElements.nextBtn.innerText = nextBtnText;
         this.atualizarBarraProgresso();
     },
 
-    atualizarBarraProgresso: function() { if(this.formElements.progressFill) this.formElements.progressFill.style.width = ((this.currentStep / 3) * 100) + "%"; },
+    atualizarBarraProgresso: function() {
+        if(this.formElements.progressFill) this.formElements.progressFill.style.width = ((this.currentStep / 3) * 100) + "%";
+    },
 
     validateCurrentStep: function() {
         const fields = document.querySelectorAll(`.form-step[data-step="${this.currentStep}"] .pet-field`);
-        for (const field of fields) { if (!field.checkValidity()) { field.reportValidity(); return false; } }
+        for (const field of fields) {
+            if (!field.checkValidity()) {
+                field.reportValidity();
+                return false;
+            }
+        }
         return true;
     },
 
     enviarDadosConsolidados: async function() {
-        this.formElements.nextBtn.innerText = "Enviando... ⏳"; this.formElements.nextBtn.disabled = true;
-        const payload = { id_aluna: this.emailAluna, circle_id: this.circleMemberId, quantidade_pets: this.totalPetsExpected, pets_cadastrados: this.petsCadastrados, todos_os_pets: this.petsCadastrados, gasto_total_mensal: this.petsCadastrados.reduce((acc, p) => acc + p.gasto, 0), data_registro: new Date().toISOString(), is_sandbox: this.sandboxMode };
+        if (this.formElements.nextBtn) {
+            this.formElements.nextBtn.innerText = "Enviando... ⏳"; 
+            this.formElements.nextBtn.disabled = true;
+        }
+        
+        const payload = { 
+            id_aluna: this.emailAluna, circle_id: this.circleMemberId, quantidade_pets: this.totalPetsExpected, pets_cadastrados: this.petsCadastrados, todos_os_pets: this.petsCadastrados,
+            gasto_total_mensal: this.petsCadastrados.reduce((acc, p) => acc + p.gasto, 0), data_registro: new Date().toISOString(), is_sandbox: this.sandboxMode 
+        };
+        
         try {
             const response = await fetch(this.webhookUrlMake, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            if (!response.ok) throw new Error('Erro na conexao');
-            this.safeStorage('set', this.constants.LS_PARTICIPADO, "true"); this.exibirTelaConclusao();
+            if (!response.ok) throw new Error('Network response was not ok.');
+            
+            this.safeStorage('set', this.constants.LS_PARTICIPADO, "true");
+            this.exibirTelaConclusao();
         } catch (error) {
-            alert("⚠️ Erro ao enviar. Tente novamente."); this.formElements.nextBtn.innerText = "Finalizar e Enviar 🚀"; this.formElements.nextBtn.disabled = false;
+            alert("⚠️ Erro ao enviar. Tente novamente.");
+            if (this.formElements.nextBtn) {
+                this.formElements.nextBtn.innerText = "Finalizar e Enviar 🚀";
+                this.formElements.nextBtn.disabled = false;
+            }
         }
     },
 
     exibirTelaConclusao: function() {
-        this.currentStep = 4; this.formElements.footerNav.style.display = "none"; this.formElements.progressFill.style.width = "100%";
+        this.currentStep = 4;
+        if (this.formElements.footerNav) this.formElements.footerNav.style.display = "none";
+        if (this.formElements.progressFill) this.formElements.progressFill.style.width = "100%";
+        
+        const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
+        
+        const avisoJaFez = isSocio ? `<p style="font-size: 12px; color: #64748b; margin-top: -15px; margin-bottom: 20px;">(Psst! Vimos que você já preencheu. Não precisa fazer de novo, tá?)</p>` : '';
         
         const containerHtml = `
             <div class="socio-alert-container">
-                <div style="font-size: 42px; margin-bottom: 10px;">🎉🐾</div>
-                <h3 style="color:#1a1850; font-size: 22px; font-weight:900;">Censo Concluído com Sucesso!</h3>
-                <p style="color:#475569; margin: 12px 0 20px 0; line-height: 1.5;">Seus bichinhos foram cadastrados! O seu Widget Flutuante de Arrasas e sua 1ª Medalha já estão ativos no canto da tela!</p>
-                <a href="${this.whatsappArrasasUrl}" target="_blank" class="btn-whatsapp-arrasas">💬 Acompanhar Meus Arrasas no WhatsApp</a>
-                <button class="btn-close-final" id="btn-final-dismiss" style="display: block; width: 100%; margin-top: 14px; background: transparent; border: none; color: #94a3b8; text-decoration: underline; cursor: pointer;">Fechar e Navegar</button>
+                <div style="font-size: 54px; margin-bottom: 12px; animation: modalBounce 1s;">🎁</div>
+                <h3 style="color:#1a1850; font-size: 22px; font-weight:900;">Falta Só Mais Um Passo!</h3>
+                <p style="color:#475569; margin: 12px 0 24px 0; line-height: 1.5;">O Censo foi salvo com sucesso! Agora você precisa <b>preencher o formulário socioeconômico</b> para liberar suas medalhas e o auxílio financeiro.</p>
+                ${avisoJaFez}
+                <a href="${this.socioFormUrl}" target="_blank" class="btn-socio-action">Ir para o Formulário Agora 🚀</a>
+                <button class="btn-close-final" id="btn-final-dismiss" style="display: block; width: 100%; margin-top: 20px; background: transparent; border: none; color: #94a3b8; text-decoration: underline; cursor: pointer;">Preencher depois</button>
             </div>
         `;
-        this.formElements.finalScreen.innerHTML = containerHtml;
-        setTimeout(() => {
-            const finalScreen = this.formElements.finalScreen; finalScreen.style.opacity = 1; finalScreen.classList.add("active");
-            document.getElementById("btn-final-dismiss").addEventListener("click", () => this.fecharCenso());
-        }, 150);
-    },
-
-    exibirTravaSocioeconomicoPopup: function() {
-        if (!this.isMembroLogado()) return;
-        if (document.getElementById("circle-popup-socoeco")) return;
-        if (sessionStorage.getItem('pet_popup_ignorado_sessao') === 'true') return;
-
-        const modalHtml = `
-            <div id="circle-popup-socoeco" class="pet-overlay-global" style="background: rgba(0,0,0,0.65); backdrop-filter: blur(5px);">
-                <div role="dialog" aria-modal="true" aria-labelledby="popup-socoeco-title" style="background: white; width: 90%; max-width: 500px; border-radius: 24px; padding: 32px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.4);">
-                    <div style="font-size: 42px; margin-bottom: 12px;">🔒✨</div>
-                    <h3 id="popup-socoeco-title" style="margin: 0 0 14px; font-size: 20px; font-weight: 800; color: #1a1850; line-height: 1.3;">🚀 Preencha o Formulário Socioeconômico Primeiro!</h3>
-                    <p style="font-size: 14px; color: #475569; margin: 0 0 20px; line-height: 1.6;">
-                        Para liberar o seu <strong>Censo Pet</strong>, o seu <strong>Widget Flutuante de Arrasas</strong> e a sua <strong>1ª Medalha</strong> (além do auxílio de R$ 100,00), preencha o formulário socioeconômico primeiro!
-                    </p>
-                    <a href="${this.socioFormUrl}" target="_blank" style="display: block; background: #e08b26; color: white; text-decoration: none; padding: 16px; border-radius: 14px; font-weight: 800; font-size: 15px; margin-bottom: 12px; transition: background 0.2s; box-shadow: 0 4px 15px rgba(224, 139, 38, 0.3);">
-                        Preencher Formulário Socioeconômico Agora 🚀
-                    </a>
-                    <a href="${this.whatsappArrasasUrl}" target="_blank" class="btn-whatsapp-arrasas" style="margin-bottom: 16px;">
-                        <span>💬 Acompanhar Meus Arrasas no WhatsApp</span>
-                    </a>
-                    <button id="close-circle-popup-btn" aria-label="Fechar" style="background: none; border: none; color: #64748b; font-size: 12px; cursor: pointer; text-decoration: underline;">
-                        Vou preencher mais tarde
-                    </button>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        document.body.classList.add('modal-open-circle');
-        this.trapFocus(document.getElementById("circle-popup-socoeco"));
-
-        document.getElementById("close-circle-popup-btn").addEventListener("click", () => {
-            document.getElementById("circle-popup-socoeco").remove();
-            document.body.classList.remove('modal-open-circle');
-            sessionStorage.setItem('pet_popup_ignorado_sessao', 'true');
-        });
+        
+        if (this.formElements.finalScreen) {
+            this.formElements.finalScreen.innerHTML = containerHtml;
+            setTimeout(() => {
+                const finalScreen = this.formElements.finalScreen;
+                finalScreen.style.opacity = 1;
+                finalScreen.classList.add("active");
+                document.getElementById("btn-final-dismiss")?.addEventListener("click", () => this.fecharCenso());
+            }, 150);
+        }
     },
 
     fecharCenso: function() { 
         document.getElementById(this.constants.CENSO_MODAL_ID)?.remove(); 
         document.body.classList.remove("modal-open-circle"); 
         this.censoEmAndamento = false;
-        if (this.safeStorage('get', this.constants.LS_USER_SOCIO) !== "true") { this.exibirTravaSocioeconomicoPopup(); }
+        if (this.safeStorage('get', this.constants.LS_USER_SOCIO) !== "true") {
+            this.exibirTravaSocioeconomicoPopup();
+        }
     }
 };
 
 window.PetMasterSystem = PetMasterSystem;
 window.PetMasterSystem_receberDadosWidget = function(data) { PetMasterSystem.receberDadosWidget(data); };
-if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => { PetMasterSystem.setupSPANavigationObserver(); PetMasterSystem.init(); }, 100); } 
-else { window.addEventListener("load", () => setTimeout(() => { PetMasterSystem.setupSPANavigationObserver(); PetMasterSystem.init(); }, 100)); }
+if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => PetMasterSystem.init(), 1000); } 
+else { window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 1000)); }
