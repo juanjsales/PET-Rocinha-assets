@@ -648,15 +648,7 @@ var PetMasterSystem = {
         };
     },
 
-    garantirPaginaFeed: function() {
-        const currentPath = window.location.pathname.toLowerCase();
-        if (currentPath !== '/feed' && currentPath !== '/feed/' && currentPath !== '/') {
-            console.log("🐾 PetMasterSystem: Redirecionando para o /feed para sincronização do Onboarding!");
-            window.location.href = '/feed?onboarding=true' + (this.sandboxMode ? '&sandbox=true' : '');
-            return false;
-        }
-        return true;
-    },
+   
 
     forceStartOnboarding: function() {
         console.log("🐾 PetMasterSystem: Forçando início do Onboarding pelo Widget/Comando!");
