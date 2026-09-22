@@ -1,10 +1,13 @@
 /* ==========================================================================
-   SISTEMA MASTER PRO V45.1: DOM EXACT SELECTORS FOR STEP 2 & STEP 3
+   SISTEMA MASTER PRO V45.2: COM SEGURANÇA DE ADMIN & PROTEÇÃO CONTRA LOOP
    Comunidade Aprender e Cuidar / Profissão Pet
    ========================================================================== */
 
 (function() {
     try {
+        // Trava para evitar carregar em telas de Admin do Circle.so
+        if (window.location.pathname.toLowerCase().includes('/admin')) return;
+
         var oldStyles = document.querySelectorAll('style[id*="consolidated"], style[id*="legacy"], style[id*="pet-styles"], style[id*="pet-modal-styles"], style[id*="pet-modal-multi"], style[id*="sandbox"], style[id*="pet-anim"], style[id*="pet-widget-combined-styles"], style[id*="pet-master-system-styles"]');
         oldStyles.forEach(function(st) { st.remove(); });
 
@@ -23,10 +26,7 @@
                 display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
             }
 
-            .pet-widget-in-tour-highlight {
-                z-index: 2147483648 !important;
-            }
-
+            .pet-widget-in-tour-highlight { z-index: 2147483648 !important; }
             #pet-widget-fullbody-container { display: none !important; }
 
             .pet-widget-container {
@@ -456,7 +456,8 @@ var PetMasterSystem = {
         if (this.sandboxMode) return true;
 
         const path = window.location.pathname.toLowerCase();
-        if (path.includes('/users/sign_in') || path.includes('/users/sign_up') || path.includes('/sign_up')) {
+        // NUNCA rodar em páginas de login, cadastro ou admin do Circle
+        if (path.includes('/users/sign_in') || path.includes('/users/sign_up') || path.includes('/sign_up') || path.includes('/admin')) {
             return false;
         }
 
@@ -648,15 +649,12 @@ var PetMasterSystem = {
         };
     },
 
-   
-
     forceStartOnboarding: function() {
+        if (window.location.pathname.toLowerCase().includes('/admin')) return;
         console.log("🐾 PetMasterSystem: Forçando início do Onboarding pelo Widget/Comando!");
         const userKey = this.getUserOnboardingKey(this.emailAluna);
         this.safeStorage('remove', userKey);
         this.safeStorage('remove', this.constants.LS_ONBOARDING_DONE);
-
-        if (!this.garantirPaginaFeed()) return;
 
         this.censoEmAndamento = true;
         this.fazerCaminhadaVertical();
@@ -668,6 +666,9 @@ var PetMasterSystem = {
     },
 
     verificarEIniciarOnboarding: function() {
+        // Bloqueia em ambientes de administração
+        if (window.location.pathname.toLowerCase().includes('/admin')) return;
+
         const urlParams = new URLSearchParams(window.location.search);
         const forceOnboarding = urlParams.get('onboarding') === 'true' || urlParams.get('sandbox') === 'true';
 
@@ -685,13 +686,11 @@ var PetMasterSystem = {
         const jaViuOnboarding = this.safeStorage('get', userKey) === "true";
 
         if (!jaViuOnboarding) {
-            if (!this.garantirPaginaFeed()) return;
-
             console.log("🐾 PetMasterSystem: Aluna AINDA NÃO VIU o Onboarding (Chave: " + userKey + "). MOSTRANDO AGORA!");
             this.censoEmAndamento = true;
             this.fazerCaminhadaVertical();
         } else {
-            console.log("🐾 PetMasterSystem: Aluna já assistiu ao Onboarding (Chave: " + userKey + " = true).");
+            console.log("🐾 PetMasterSystem: Aluna já assistiu ao Onboarding.");
             const isSocio = this.safeStorage('get', this.constants.LS_USER_SOCIO) === "true";
             const censoConcluido = !this.sandboxMode && this.safeStorage('get', this.constants.LS_PARTICIPADO) === "true";
             if (isSocio && !censoConcluido) {
@@ -704,6 +703,12 @@ var PetMasterSystem = {
     },
 
     init: function() {
+        // Trava essencial para evitar que rode no painel Admin do Circle.so
+        if (window.location.pathname.toLowerCase().includes('/admin')) {
+            console.log("🛑 PetMasterSystem: Script suspenso em páginas de Admin.");
+            return;
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('sandbox') === 'true' || urlParams.get('test') === 'true') {
             this.sandboxMode = true;
@@ -1664,5 +1669,12 @@ var PetMasterSystem = {
 
 window.PetMasterSystem = PetMasterSystem;
 window.PetMasterSystem_receberDadosWidget = function(data) { PetMasterSystem.receberDadosWidget(data); };
-if (document.readyState === "complete" || document.readyState === "interactive") { setTimeout(() => PetMasterSystem.init(), 1000); } 
-else { window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 1000)); }
+
+// Execução segura: Apenas quando não estiver no Admin
+if (!window.location.pathname.toLowerCase().includes('/admin')) {
+    if (document.readyState === "complete" || document.readyState === "interactive") { 
+        setTimeout(() => PetMasterSystem.init(), 1000); 
+    } else { 
+        window.addEventListener("load", () => setTimeout(() => PetMasterSystem.init(), 1000)); 
+    }
+}
